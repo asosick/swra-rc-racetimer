@@ -46,7 +46,7 @@ body {
   -webkit-user-select: none; user-select: none;
   touch-action: manipulation;
 }
-button { font: inherit; color: inherit; cursor: pointer; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 button:disabled { cursor: default; }
 [hidden] { display: none !important; }
 
@@ -289,6 +289,16 @@ input.switch:checked::after { transform: translateX(18px); }
 .add-race { display: grid; grid-template-columns: 1fr 84px 76px auto; gap: 8px; margin-top: 10px; }
 .add-race input { min-width: 0; width: 100%; }
 @media (max-width: 400px) { .add-race { grid-template-columns: 1fr 1fr; } .add-race input:first-child { grid-column: 1 / -1; } }
+
+/* ---------- audio interrupted bar ---------- */
+.audio-warn {
+  position: fixed; z-index: 60; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 12px);
+  max-width: 520px; margin: 0 auto; padding: 14px 16px; border: 0; border-radius: 16px;
+  background: var(--finish); color: #1a0e00; font-size: 15px; line-height: 1.35; text-align: left;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  animation: card-up .3s ease-out;
+}
+[data-theme="sun"] .audio-warn { color: #fff; }
 
 /* ---------- install card ---------- */
 .install-card {

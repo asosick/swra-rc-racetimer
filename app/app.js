@@ -5,7 +5,7 @@ import {
 import {
   ctx, initAudio, unlockAudio, setVolume, silenceAll, SOUNDS,
   canUseClips, playClips, speakText, sayNow, deviceVoices, onVoicesChanged,
-  VOICE_SETS, loadVoiceSet, voiceReady,
+  VOICE_SETS, loadVoiceSet, voiceReady, onAudioState, audioRunning,
 } from './audio.js';
 
 const REPO_URL = 'https://github.com/asosick/swra-rc-racetimer';
@@ -142,7 +142,7 @@ function stopTicker() {
  * Race control
  * ================================================================== */
 function start() {
-  unlockAudio();
+  unlockAudio({ fresh: true });
   activeRace = currentRace();
   let startAt = now() + 0.15;
   events = [];
@@ -467,15 +467,35 @@ el.lapSounds.addEventListener('click', () => {
   settings.lapSounds = !settings.lapSounds; save(); syncLapToggle();
 });
 
+/* ---------- buttons that must work every time on iPhone ----------
+ * iOS Safari sometimes drops the "click" after a touch (we saw touchend with no
+ * click), so the race buttons act on pointerup instead. "click" is only used for
+ * keyboard activation (detail === 0).
+ */
+function onTap(btn, fn) {
+  let down = null;
+  btn.addEventListener('pointerdown', e => { if (e.button === 0 || e.pointerType !== 'mouse') down = e.pointerId; });
+  btn.addEventListener('pointercancel', () => { down = null; });
+  btn.addEventListener('pointerup', e => {
+    if (down === null || down !== e.pointerId) return;
+    down = null;
+    fn(e);
+  });
+  btn.addEventListener('click', e => { if (e.detail === 0) fn(e); });
+}
+
 /* ---------- main button: tap to start, hold to stop ---------- */
 let holdTimer = null;
 function cancelHold() {
   clearTimeout(holdTimer); holdTimer = null;
   el.main.classList.remove('holding');
 }
+function flashHint() { el.hint.classList.remove('flash'); void el.hint.offsetWidth; el.hint.classList.add('flash'); }
 // After a hold stops the race the button turns into Start while the finger is
 // still down; swallow that same press so lifting it doesn't start a new race.
 let swallowPress = false;
+['pointerdown', 'pointerup', 'pointercancel', 'touchend', 'click']
+  .forEach(t => el.main.addEventListener(t, e => window.__log?.(`btn ${t} ${e.pointerType || ''} phase=${phase}`), true));
 el.main.addEventListener('pointerdown', e => {
   swallowPress = false;
   if (!isRunning()) return;
@@ -483,28 +503,25 @@ el.main.addEventListener('pointerdown', e => {
   el.main.classList.add('holding');
   holdTimer = setTimeout(() => { cancelHold(); swallowPress = true; stop(); }, HOLD_MS);
 });
-['pointerup', 'pointerleave', 'pointercancel'].forEach(t => el.main.addEventListener(t, () => {
-  if (holdTimer) {
-    cancelHold();
-    el.hint.classList.remove('flash'); void el.hint.offsetWidth; el.hint.classList.add('flash');
-  }
-}));
+el.main.addEventListener('pointercancel', () => { if (holdTimer) cancelHold(); });
 el.main.addEventListener('contextmenu', e => e.preventDefault());
-el.main.addEventListener('click', () => {
+onTap(el.main, () => {
+  if (holdTimer) { cancelHold(); flashHint(); return; } // let go too soon
   if (swallowPress) { swallowPress = false; return; }
-  if (isRunning()) return; // handled by hold
+  if (isRunning()) return;                                // stopping is hold-only
   if (phase === 'idle' || phase === 'gap') start();
   else if (phase === 'finished') nextFromFinished();
 });
 
-el.second.addEventListener('click', () => {
+onTap(el.second, () => {
   if (phase === 'paused') resume();
   else if (phase === 'gap') { stopTicker(); setPhase('idle'); }
-  else pause();
+  else if (isRunning()) pause();
 });
 
-el.test.addEventListener('click', () => {
-  unlockAudio();
+onTap(el.test, async () => {
+  unlockAudio({ fresh: !isRunning() });
+  await audioRunning();
   const t = now() + 0.1;
   SOUNDS.tick(t, 5); SOUNDS.tick(t + 0.5, 2); SOUNDS.go(t + 1);
   SOUNDS.lap(t + 2.2);
@@ -589,8 +606,8 @@ s.voiceSelect.addEventListener('change', () => {
 });
 s.rate.addEventListener('input', () => { settings.rate = Number(s.rate.value); save(); });
 $('previewVoice').addEventListener('click', async () => {
-  unlockAudio();
-  await loadVoiceSet(settings.voice);
+  unlockAudio({ fresh: !isRunning() && phase !== 'gap' });
+  await Promise.all([loadVoiceSet(settings.voice), audioRunning()]);
   sayNow({ keys: ['lap3'], text: 'Lap 3' });
 });
 s.themeSeg.addEventListener('click', e => {
@@ -714,6 +731,31 @@ $('csvLog').addEventListener('click', () => {
 $('clearLog').addEventListener('click', () => {
   if (confirm('Delete the whole race log from this device?')) { clearLog(); buildLog(); }
 });
+
+/* ================================================================== *
+ * Audio interrupted (iPhone: calls, Siri, other apps, locking the screen).
+ * The race clock is the audio clock, so while sound is stopped the race is
+ * effectively paused. Say so, and let any tap bring it back.
+ * ================================================================== */
+const audioWarn = $('audioWarn');
+let warnTimer = null;
+function checkAudio() {
+  const active = isRunning() && phase !== 'paused' || phase === 'gap';
+  const stuck = active && ctx && ctx.state !== 'running';
+  clearTimeout(warnTimer);
+  if (!stuck) { audioWarn.hidden = true; return; }
+  warnTimer = setTimeout(() => { if (ctx.state !== 'running') audioWarn.hidden = false; }, 400);
+}
+onAudioState(checkAudio);
+new MutationObserver(checkAudio).observe(app, { attributes: true, attributeFilter: ['data-phase'] });
+const kickAudio = () => {
+  if (!ctx || ctx.state === 'running') return;
+  const p = ctx.resume(); if (p && p.catch) p.catch(() => {});
+};
+// Any tap (they count as a user gesture on iOS) tries to resume the sound.
+['touchend', 'click'].forEach(t => document.addEventListener(t, kickAudio, true));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { kickAudio(); checkAudio(); } });
+audioWarn.addEventListener('click', kickAudio);
 
 /* ================================================================== *
  * Install prompt

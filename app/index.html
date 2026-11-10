@@ -14,6 +14,27 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
   <script>
+    // ?debug=1: on-screen log of errors and audio/clock state (for testing on phones).
+    if (/[?&]debug=1/.test(location.search)) {
+      window.__dbg = [];
+      var log = function (m) { window.__dbg.push(new Date().toISOString().slice(17, 23) + ' ' + m); if (window.__dbg.length > 14) window.__dbg.shift(); };
+      window.__log = log;
+      window.addEventListener('error', function (e) { log('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); });
+      window.addEventListener('unhandledrejection', function (e) { log('REJ ' + (e.reason && (e.reason.message || e.reason))); });
+      document.addEventListener('DOMContentLoaded', function () {
+        var d = document.createElement('pre');
+        d.style.cssText = 'position:fixed;z-index:999;left:4px;right:4px;bottom:4px;margin:0;padding:6px;font:11px/1.3 ui-monospace,monospace;background:rgba(0,0,0,.8);color:#7f7;pointer-events:none;white-space:pre-wrap;max-height:45vh;overflow:hidden';
+        document.body.appendChild(d);
+        var beat = 0;
+        setInterval(function () {
+          var r = window.__race, c = window.__ctx;
+          d.textContent = 'beat ' + (++beat) + ' | ctx ' + (c ? c.state + ' t=' + c.currentTime.toFixed(2) : '-') +
+            ' | phase ' + (r ? r.phase : '-') + '\n' + window.__dbg.join('\n');
+        }, 250);
+      });
+    }
+  </script>
+  <script>
     // Apply the saved theme before first paint (no flash of the wrong colours).
     try { document.documentElement.dataset.theme = JSON.parse(localStorage.getItem('settings') || '{}').theme || 'dark'; } catch (e) {}
   </script>
@@ -164,6 +185,10 @@
       <ul class="list log" id="logList"></ul>
     </div>
   </dialog>
+
+  <button type="button" class="audio-warn" id="audioWarn" hidden>
+    <b>Sound was stopped by the phone.</b> The race is on hold. Tap here to carry on.
+  </button>
 
   <!-- ---------- Install prompt (small card, not a modal) ---------- -->
   <div class="install-card" id="installCard" role="dialog" aria-labelledby="installTitle" hidden>

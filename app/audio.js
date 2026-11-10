@@ -45,11 +45,18 @@ export function loadVoiceSet(name) {
 const currentClips = () => sets.get(settings.voice)?.clips;
 export let voiceReady = Promise.resolve();
 
-export function initAudio() {
-  if (ctx) return ctx;
-  // iOS: play through the ringer/silent switch like a media app.
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+const stateListeners = new Set();
+/** Be told when the audio engine starts/stops running (iOS can interrupt it). */
+export function onAudioState(fn) { stateListeners.add(fn); }
+
+function buildContext() {
+  const old = ctx;
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  window.__ctx = ctx;
+  ctx.addEventListener?.('statechange', () => {
+    window.__log?.('ctx -> ' + ctx.state);
+    stateListeners.forEach(fn => fn(ctx.state));
+  });
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -12; comp.ratio.value = 6;
   master = ctx.createGain();
@@ -58,15 +65,49 @@ export function initAudio() {
   voiceBus.gain.value = 1;
   voiceBus.connect(master);
   master.connect(comp).connect(ctx.destination);
+  live = [];
+  if (old && old.state !== 'closed') { try { const p = old.close(); if (p && p.catch) p.catch(() => {}); } catch {} }
+}
+
+export function initAudio() {
+  if (ctx) return ctx;
+  // iOS: play through the ringer/silent switch like a media app.
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  buildContext();
   voiceReady = Promise.all([loadVoiceSet(settings.voice), loadSamples()]);
   return ctx;
 }
 
-/** Call from inside a tap so mobile browsers allow sound. */
-export function unlockAudio() {
+/**
+ * Call from inside a tap so mobile browsers allow sound.
+ * fresh=true (only when nothing is scheduled, e.g. on Start): if iOS has left the
+ * engine "interrupted" (calls, Siri, other apps), replace it so the clock runs again.
+ * Decoded clips are plain AudioBuffers and carry over to the new engine.
+ */
+export function unlockAudio({ fresh = false } = {}) {
   initAudio();
-  if (ctx.state !== 'running') ctx.resume();
-  unlockSpeech();
+  if (fresh && (ctx.state === 'interrupted' || ctx.state === 'closed')) {
+    window.__log?.('rebuilding audio engine (was ' + ctx.state + ')');
+    buildContext();
+  }
+  if (ctx.state !== 'running') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); }
+  // Only wake text-to-speech if a phone voice is in use: on iPhone it can
+  // interrupt the audio engine, which freezes the race clock.
+  if (!VOICE_SETS[settings.voice]) unlockSpeech();
+}
+
+/** Resolves once the audio engine is running (or after `ms`). */
+export function audioRunning(ms = 600) {
+  if (ctx && ctx.state === 'running') return Promise.resolve(true);
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const check = () => {
+      if (ctx && ctx.state === 'running') return resolve(true);
+      if (performance.now() - t0 > ms) return resolve(false);
+      setTimeout(check, 30);
+    };
+    check();
+  });
 }
 
 export function setVolume(v) {
@@ -76,7 +117,7 @@ export function setVolume(v) {
 export function silenceAll() {
   for (const n of live) { try { n.stop(); } catch {} }
   live = [];
-  if (synth) synth.cancel();
+  if (synth && (synth.speaking || synth.pending)) synth.cancel();
 }
 
 function track(node) {
@@ -214,6 +255,7 @@ export function canUseClips(keys) {
 
 /** Schedule recorded clips back to back starting at time t. */
 export function playClips(keys, t) {
+  window.__log?.(`clips ${keys.join('+')} at +${(t - ctx.currentTime).toFixed(2)} ctx=${ctx.state}`);
   const clips = currentClips();
   let at = t;
   for (const k of keys) {
@@ -229,6 +271,7 @@ export function playClips(keys, t) {
 
 /** Speak with the phone's text-to-speech (fallback, or when chosen in settings). */
 export function speakText(text) {
+  window.__log?.(`tts "${text}" synth=${!!synth} speaking=${synth?.speaking} pending=${synth?.pending}`);
   if (!synth) return;
   const u = new SpeechSynthesisUtterance(text);
   const v = !VOICE_SETS[settings.voice] && synth.getVoices().find(x => x.voiceURI === settings.voice);
@@ -238,12 +281,14 @@ export function speakText(text) {
   u.lang = voice ? voice.lang : 'en-US';
   u.rate = settings.rate;
   u.volume = settings.volume;
-  synth.cancel();
-  synth.speak(u);
+  // iOS ignores speak() straight after cancel(); give it a moment.
+  if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(() => synth.speak(u), 60); }
+  else synth.speak(u);
 }
 
 /** Say a phrase right now. phrase = { keys: [...clip keys], text: 'fallback text' } */
 export function sayNow(phrase) {
+  window.__log?.(`sayNow ${phrase.keys} canClips=${canUseClips(phrase.keys)} voice=${settings.voice}`);
   if (canUseClips(phrase.keys)) playClips(phrase.keys, ctx.currentTime + 0.02);
   else speakText(phrase.text);
 }

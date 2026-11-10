@@ -20,7 +20,7 @@
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var MIN_FLAG = 1300;   // ms the flag is shown before the plane may fly
-  var MAX_WAIT = 4500;   // fly even if the app never says it's ready
+  var MAX_WAIT = 2600;   // fly even if the sounds are still loading (iOS decodes slowly until first tap)
   var FLY = 1500;        // ms for the plane to cross the screen
   var COVER = 450;       // ms for the smoke to close up after the plane
   var FADE = 750;        // ms for the smoke to clear (CSS transition)

@@ -84,7 +84,7 @@ Everything is static files in `app/`. Serve it locally:
 python3 -m http.server 8765 --directory app
 ```
 
-When you change files in `app/`, bump `VERSION` in `app/sw.js` so installed copies update. In the browser console, `__race.skip(30)` fast-forwards a running race by 30 seconds for testing.
+When you change files in `app/`, bump `VERSION` in `app/sw.js` so installed copies update. Add `?debug=1` to the URL to get an on-screen log of errors, the audio engine's state and button events. It's handy for testing on a phone. In the browser console, `__race.skip(30)` fast-forwards a running race by 30 seconds for testing.
 
 ## Deploy
 
