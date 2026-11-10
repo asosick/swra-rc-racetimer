@@ -44,7 +44,7 @@ Other features:
 - **Race log**: every finished or stopped race is saved on the phone. Share it as text or download it as CSV.
 - **Help**: the **?** button explains everything, and it opens by itself on first launch.
 - **Install prompt**: a small card offers to install the app (after the help closes on first launch). It uses the browser's install prompt on Android/Chrome and shows the steps on iPhone and Mac Safari. "Not now" hides it for two weeks, and it stops asking after three dismissals.
-- **Settings are remembered** on the device between launches.
+- **Settings are remembered** on the device between launches. The loading animation can be switched off in Settings → Display.
 - **Settings**: volume, voice countdown on/off, time warnings ("One minute", "Thirty seconds") on/off, countdown length, recorded voice or the phone's own voice (with speed), a dark or sunlight (black-on-yellow) theme, and custom race types.
 
 ### Voice clips

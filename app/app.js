@@ -561,6 +561,7 @@ function syncSettings() {
   s.rate.value = settings.rate;
   s.rateRow.hidden = !!VOICE_SETS[settings.voice];
   for (const b of s.themeSeg.children) b.setAttribute('aria-pressed', String(b.dataset.theme === settings.theme));
+  $('splashToggle').checked = settings.splash !== false;
   s.customList.innerHTML = settings.customRaces.length ? '' : '<li class="empty">None yet</li>';
   for (const r of settings.customRaces) {
     const li = document.createElement('li');
@@ -579,6 +580,7 @@ function syncSettings() {
 s.volume.addEventListener('input', () => { settings.volume = s.volume.value / 100; setVolume(settings.volume); save(); });
 s.voiceCountdown.addEventListener('change', () => { settings.voiceCountdown = s.voiceCountdown.checked; save(); });
 s.warnings.addEventListener('change', () => { settings.warnings = s.warnings.checked; save(); });
+$('splashToggle').addEventListener('change', e => { settings.splash = e.target.checked; save(); });
 s.countdownLen.addEventListener('change', () => { settings.countdown = Number(s.countdownLen.value); save(); render(); });
 s.voiceSelect.addEventListener('change', () => {
   settings.voice = s.voiceSelect.value; save();

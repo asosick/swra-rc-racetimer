@@ -55,7 +55,8 @@ button:disabled { cursor: default; }
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 10px;
-  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+  /* Extra room below the status bar / Dynamic Island: iOS blurs content right at that edge. */
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) max(16px, env(safe-area-inset-right))
            max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   max-width: 1100px;
   margin: 0 auto;
@@ -85,7 +86,8 @@ button:disabled { cursor: default; }
   font-weight: 600; font-size: 14px;
 }
 .icon-btn { padding: 8px 10px; }
-.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn svg.gear { stroke-width: 1.8; }
 @media (max-width: 480px) {
   .icon-btn span { display: none; }
   .toolbar { gap: 6px; }
@@ -290,7 +292,7 @@ input.switch:checked::after { transform: translateX(18px); }
 
 /* ---------- install card ---------- */
 .install-card {
-  position: fixed; z-index: 50; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top));
+  position: fixed; z-index: 50; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 12px);
   max-width: 520px; margin: 0 auto;
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; border-radius: 18px;

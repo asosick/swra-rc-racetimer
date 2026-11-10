@@ -1,6 +1,6 @@
 // Settings, race definitions and the race log, remembered on this device.
 
-export const APP_VERSION = '0.4.1';
+export const APP_VERSION = '0.4.2';
 
 // From the SWRA 2-pole criteria doc.
 export const BUILTIN_RACES = [
@@ -20,6 +20,7 @@ const DEFAULTS = {
   voice: 'liam',        // recorded set ('liam' | 'classic') or a device voiceURI
   rate: 1.1,            // device voice speed
   theme: 'dark',        // 'dark' | 'sun'
+  splash: true,         // loading animation on launch
   customRaces: [],      // [{ id, name, total, lap }]
   heats: [],            // [raceId, ...]
   heatGap: 120,         // seconds between heats; 0 = manual start

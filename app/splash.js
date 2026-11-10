@@ -10,6 +10,10 @@
   'use strict';
   var root = document.getElementById('splash');
   if (!root) return;
+  // Loading animation switched off in Settings: go straight to the app.
+  try {
+    if (JSON.parse(localStorage.getItem('settings') || '{}').splash === false) { root.remove(); return; }
+  } catch (e) {}
   var flagCanvas = document.getElementById('splashFlag');
   var fx = document.getElementById('splashFx');
   var g2 = fx.getContext('2d');
