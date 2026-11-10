@@ -173,7 +173,13 @@ function scheduler() {
     }
     if (e.kind === 'lap' && e.audible && !e.spoken && now >= e.t + SPEAK_DELAY) {
       e.spoken = true;
-      if (lapSoundsOn && now < e.t + 2) speak(String(e.n));
+      if (lapSoundsOn && now < e.t + 2) speak(`Lap ${e.n}`);
+    }
+    // Spoken countdown: "10, 9, … 1, Go" on top of the countdown beeps.
+    // Speech engines take ~0.1–0.3 s to start, so the voice lands just after each beep.
+    if ((e.kind === 'tick' || e.kind === 'go') && !e.spoken && now >= e.t) {
+      e.spoken = true;
+      if (now < e.t + 0.5) speak(e.kind === 'go' ? 'Go!' : String(e.n));
     }
   }
   if (phase === 'racing' && now >= t0 + RACES[raceKey].total) finish();
@@ -332,7 +338,7 @@ el.test.addEventListener('click', () => {
   const t = ctx.currentTime + 0.1;
   SOUNDS.tick(t, 5); SOUNDS.tick(t + 0.5, 2); SOUNDS.go(t + 1);
   SOUNDS.lap(t + 2.2);
-  setTimeout(() => speak('1'), (2.2 + SPEAK_DELAY) * 1000);
+  setTimeout(() => speak('Lap 1'), (2.2 + SPEAK_DELAY) * 1000);
   SOUNDS.end(t + 3.4);
 });
 

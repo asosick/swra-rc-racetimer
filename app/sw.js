@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so phones pick up the new build.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `race-timer-${VERSION}`;
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
