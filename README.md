@@ -11,7 +11,9 @@ Timer for SWRA 2-pole races, built as an installable web app (PWA). It runs in t
 | Silver    | 120 s  | 12 s           | 10   |
 | Gold      | 90 s   | 9 s            | 10   |
 
-**Start** runs a countdown (10 s by default): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with an air horn and ends with a brass fanfare. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. All sounds are synthesized in the browser, so there are no sound files to license.
+**Start** runs a countdown (10 s by default): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn and ends with a brass fanfare. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
+
+Air horn: "Gas fog horn #2" by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/gas-fog-horn-2-s1049.html), CC0 (public domain). The app uses the first blast, trimmed and normalised, in `app/sounds/airhorn.m4a`.
 
 During a race:
 

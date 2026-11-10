@@ -58,7 +58,7 @@ export function initAudio() {
   voiceBus.gain.value = 1;
   voiceBus.connect(master);
   master.connect(comp).connect(ctx.destination);
-  voiceReady = loadVoiceSet(settings.voice);
+  voiceReady = Promise.all([loadVoiceSet(settings.voice), loadSamples()]);
   return ctx;
 }
 
@@ -110,41 +110,27 @@ function bell(t, freq, dur, gain, partials = [[1, 1], [2, 0.3], [3, 0.12]]) {
   }
 }
 
-let shaper = null;
-function distortion() {
-  if (shaper) return shaper;
-  const n = 1024, curve = new Float32Array(n);
-  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(3 * x); }
-  shaper = ctx.createWaveShaper();
-  shaper.curve = curve;
-  shaper.oversample = '4x';
-  return shaper;
+/* Sampled sounds (app/sounds/). Air horn: "Gas fog horn #2" by Joseph Sardin,
+ * BigSoundBank, CC0 — https://bigsoundbank.com/gas-fog-horn-2-s1049.html */
+const samples = new Map();
+async function loadSamples() {
+  await Promise.all(['airhorn'].map(async name => {
+    try {
+      const res = await fetch(`sounds/${name}.m4a`);
+      if (res.ok) samples.set(name, await decode(await res.arrayBuffer()));
+    } catch {}
+  }));
 }
-
-/** Stadium air horn: a raspy, slightly dissonant cluster that "blooms" in pitch. */
-function airHorn(t, dur, gain = 0.5) {
-  const end = t + dur;
-  const pre = ctx.createGain(); pre.gain.value = 0.55;
-  const shape = ctx.createWaveShaper(); shape.curve = distortion().curve; shape.oversample = '4x';
-  const bp = ctx.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 2400; bp.Q.value = 0.9; bp.gain.value = 6;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
-  const amp = ctx.createGain();
-  amp.gain.setValueAtTime(0.0001, t);
-  amp.gain.exponentialRampToValueAtTime(gain, t + 0.02);
-  amp.gain.setValueAtTime(gain, end - 0.09);
-  amp.gain.exponentialRampToValueAtTime(0.0001, end);
-  pre.connect(shape).connect(bp).connect(lp).connect(amp).connect(master);
-  for (const f of [349, 415, 466, 523]) {
-    for (const det of [-7, 7]) {
-      const o = osc('sawtooth', f * 0.9, t, end + 0.05);
-      o.detune.value = det;
-      o.frequency.exponentialRampToValueAtTime(f, t + 0.06);     // bloom up into pitch
-      o.frequency.setValueAtTime(f, end - 0.12);
-      o.frequency.exponentialRampToValueAtTime(f * 0.96, end);  // little droop at the end
-      const g = ctx.createGain(); g.gain.value = 0.18;
-      o.connect(g).connect(pre);
-    }
-  }
+function playSample(name, t, gain = 1) {
+  const buf = samples.get(name);
+  if (!buf) return false;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const g = ctx.createGain(); g.gain.value = gain;
+  src.connect(g).connect(master);
+  src.start(t);
+  track(src);
+  return true;
 }
 
 /** Warm brass: detuned saws through an opening low-pass filter, vibrato on long notes. */
@@ -185,8 +171,11 @@ export const SOUNDS = {
     if (n <= 3) bell(t, 1568, 0.45, 0.6);
     else bell(t, 1047, 0.22, 0.55, [[1, 1], [3.93, 0.18]]);
   },
-  // Race start: air horn.
-  go(t) { airHorn(t, 0.85); },
+  // Race start: air horn (falls back to a bright bell chord if the clip didn't load).
+  go(t) {
+    if (playSample('airhorn', t, 0.9)) return;
+    for (const f of [1047, 1319, 1568]) bell(t, f, 0.7, 0.35);
+  },
   // Lap: quick two-note chime ("di-ding").
   lap(t) {
     bell(t, 1760, 0.18, 0.5);
