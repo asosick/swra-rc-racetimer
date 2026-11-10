@@ -43,7 +43,7 @@ Other features:
 - **Heats**: queue up a run of heats (any mix of race types). Set a break between heats (30 s to 5 min) and the next heat starts on its own, announced as "Heat 3" before its countdown. You can also choose manual start.
 - **Race log**: every finished or stopped race is saved on the phone. Share it as text or download it as CSV.
 - **Help**: the **?** button explains everything, and it opens by itself on first launch.
-- **Install prompt**: from the second launch on, a small card offers to install the app. "Not now" hides it for two weeks, and it stops asking after three dismissals.
+- **Install prompt**: a small card offers to install the app (after the help closes on first launch). It uses the browser's install prompt on Android/Chrome and shows the steps on iPhone and Mac Safari. "Not now" hides it for two weeks, and it stops asking after three dismissals.
 - **Settings are remembered** on the device between launches.
 - **Settings**: volume, voice countdown on/off, time warnings ("One minute", "Thirty seconds") on/off, countdown length, recorded voice or the phone's own voice (with speed), a dark or sunlight (black-on-yellow) theme, and custom race types.
 
@@ -71,6 +71,7 @@ Countdown numbers longer than 0.8 s are sped up (keeping the pitch) so they fit 
 Open the site, then:
 
 - **iPhone/iPad (Safari):** Share → Add to Home Screen.
+- **Mac (Safari 17+):** File → Add to Dock.
 - **Android (Chrome):** ⋮ menu → Install app (or Add to Home screen).
 
 Pair the Bluetooth speaker in the phone's settings first; the app just plays to the current audio output. Use **Test sound** to check volume before a race.

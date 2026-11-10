@@ -724,8 +724,20 @@ const INSTALL_SNOOZE_DAYS = 14;
 const INSTALL_MAX_DISMISS = 3;
 let deferredInstall = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const canInstall = () => !isStandalone() && (deferredInstall || isIOS());
+const UA = navigator.userAgent;
+const isIOS = () => /iphone|ipad|ipod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// Safari 17+ on a Mac can "Add to Dock", but has no install prompt to trigger.
+const isMacSafari = () => /Macintosh/.test(UA) && /Version\/(1[7-9]|[2-9]\d)[.\d]* .*Safari\//.test(UA)
+  && !/Chrome|Chromium|Edg|OPR|Firefox/.test(UA) && !isIOS();
+/** How this browser installs: 'prompt' (Chrome/Android), 'ios', 'mac', or null. */
+const installKind = () => {
+  if (isStandalone()) return null;
+  if (deferredInstall) return 'prompt';
+  if (isIOS()) return 'ios';
+  if (isMacSafari()) return 'mac';
+  return null;
+};
+const canInstall = () => installKind() !== null;
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();          // we show our own, quieter card instead
@@ -739,12 +751,15 @@ function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch
 
 function showInstallCard() {
   const card = $('installCard');
-  const ios = !deferredInstall && isIOS();
-  $('installMsg').innerHTML = ios
-    ? 'Tap <svg class="ios-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4 4 4M6 11H5v10h14V11h-1"/></svg> <b>Share</b>, then <b>Add to Home Screen</b>. It then works offline.'
-    : 'Works offline at the field and opens full screen.';
-  $('installYes').hidden = ios;
-  $('installNo').textContent = ios ? 'Got it' : 'Not now';
+  const kind = installKind();
+  const share = '<svg class="ios-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4 4 4M6 11H5v10h14V11h-1"/></svg>';
+  $('installMsg').innerHTML = {
+    ios: `Tap ${share} <b>Share</b>, then <b>Add to Home Screen</b>. It then works offline.`,
+    mac: `In Safari's menu bar choose <b>File → Add to Dock</b>. It then opens like an app and works offline.`,
+  }[kind] || 'Works offline at the field and opens full screen.';
+  const manual = kind === 'ios' || kind === 'mac';
+  $('installYes').hidden = manual;
+  $('installNo').textContent = manual ? 'Got it' : 'Not now';
   card.hidden = false;
 }
 function hideInstallCard() { $('installCard').hidden = true; }
@@ -757,8 +772,8 @@ async function doInstall() {
     hideInstallCard();
     if (outcome !== 'accepted') snoozeInstall();
     syncInstallSetting();
-  } else if (isIOS()) {
-    showInstallCard();
+  } else if (canInstall()) {
+    showInstallCard(); // iPhone/Mac Safari: show the how-to
   }
 }
 function snoozeInstall() {
@@ -772,14 +787,16 @@ $('installFromSettings').addEventListener('click', () => { $('settingsSheet').cl
 function syncInstallSetting() { $('installSection').hidden = !canInstall(); }
 
 function maybeOfferInstall() {
-  const launches = lsGet('launches', 0);
-  if (launches < 2) return;                                    // not on the very first open
   if (lsGet('installDismissed', 0) >= INSTALL_MAX_DISMISS) return;
   if (Date.now() < lsGet('installSnoozeUntil', 0)) return;
-  setTimeout(() => {
-    if (!canInstall() || isRunning() || document.querySelector('dialog[open]')) return;
+  const offer = () => {
+    if (!canInstall() || isRunning()) return;
+    const open = document.querySelector('dialog[open]');
+    // Don't stack on top of the help (first launch): wait until it's closed.
+    if (open) { open.addEventListener('close', () => setTimeout(offer, 1000), { once: true }); return; }
     showInstallCard();
-  }, 2500); // give the browser's install event time to arrive, and the user a moment
+  };
+  setTimeout(offer, 1500); // give Chrome's install event time to arrive
 }
 // Hide the card as soon as a race starts.
 new MutationObserver(() => { if (isRunning()) hideInstallCard(); }).observe(app, { attributes: true, attributeFilter: ['data-phase'] });
