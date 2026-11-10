@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so phones pick up the new build.
-const VERSION = 'v12';
+const VERSION = 'v13';
 const CACHE = `race-timer-${VERSION}`;
 
 // Must match clipKeys() in audio.js.

@@ -49,12 +49,12 @@ Other features:
 
 ### Voice clips
 
-Spoken callouts use recorded clips, scheduled on the audio clock for exact timing. There are two sets, and you pick one in **Settings → Voice**:
+Spoken callouts use recorded clips only, scheduled on the audio clock for exact timing. There are two sets, and you pick one in **Settings → Voice**:
 
 - **Liam (exciting)**, `app/voice/liam/`: ElevenLabs voice "Liam" on the `eleven_v4` model, with excited/shouting delivery. Voice by [ElevenLabs](https://elevenlabs.io), generated on the free plan, which requires this credit and non-commercial use.
 - **Classic (calm)**, `app/voice/classic/`: macOS "Samantha" voice. Apple's licence for system voices is aimed at personal use.
 
-You can also pick one of the phone's own voices; the app also falls back to the phone's voice if a clip is missing.
+The phone's built-in text-to-speech is not used: on iPhone it interrupts the audio engine that drives the race clock.
 
 The clips are generated once with `tools/make-voice.sh` and committed, so they sound the same every time:
 

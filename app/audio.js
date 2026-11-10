@@ -20,9 +20,18 @@ export function clipKeys() {
 }
 const sets = new Map(); // set name -> { clips: Map, ready: Promise }
 
+// Decode on an OfflineAudioContext: it isn't subject to autoplay rules, so the
+// clips are ready before the first tap (iPhone stalls decoding on a suspended
+// AudioContext). The resulting AudioBuffers play fine in the real context.
+let decoder = null;
 function decode(ab) {
+  if (!decoder) {
+    const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    try { decoder = Off ? new Off(1, 1, 44100) : null; } catch { decoder = null; }
+  }
+  const dc = decoder || ctx;
   return new Promise((resolve, reject) => {
-    const p = ctx.decodeAudioData(ab, resolve, reject);
+    const p = dc.decodeAudioData(ab, resolve, reject);
     if (p && p.then) p.then(resolve, reject);
   });
 }
@@ -38,7 +47,9 @@ export function loadVoiceSet(name) {
         clips.set(key, await decode(await res.arrayBuffer()));
       } catch {}
     }));
-    sets.set(name, { clips, ready });
+    const entry = { clips, ready, done: false };
+    ready.then(() => { entry.done = true; window.__log?.(`voice ${name}: ${clips.size} clips`); });
+    sets.set(name, entry);
   }
   return sets.get(name).ready;
 }
@@ -91,9 +102,7 @@ export function unlockAudio({ fresh = false } = {}) {
     buildContext();
   }
   if (ctx.state !== 'running') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); }
-  // Only wake text-to-speech if a phone voice is in use: on iPhone it can
-  // interrupt the audio engine, which freezes the race clock.
-  if (!VOICE_SETS[settings.voice]) unlockSpeech();
+
 }
 
 /** Resolves once the audio engine is running (or after `ms`). */
@@ -117,7 +126,6 @@ export function setVolume(v) {
 export function silenceAll() {
   for (const n of live) { try { n.stop(); } catch {} }
   live = [];
-  if (synth && (synth.speaking || synth.pending)) synth.cancel();
 }
 
 function track(node) {
@@ -231,35 +239,29 @@ export const SOUNDS = {
   },
 };
 
-/* ---------- voice ---------- */
-const synth = window.speechSynthesis || null;
+/* ---------- voice: recorded clips only ----------
+ * The phone's own text-to-speech is not used at all: on iPhone it interrupts
+ * the audio engine (which is also the race clock). If a clip is missing, that
+ * callout is simply skipped.
+ */
 
-export function deviceVoices() {
-  if (!synth) return [];
-  return synth.getVoices().filter(v => /^en/i.test(v.lang));
-}
-export function onVoicesChanged(fn) { if (synth) synth.addEventListener?.('voiceschanged', fn); }
-
-function unlockSpeech() {
-  if (!synth) return;
-  const u = new SpeechSynthesisUtterance(' ');
-  u.volume = 0;
-  synth.speak(u);
-}
-
-/** True if this phrase will be played from recorded clips (sample-accurate). */
+/** True if every clip for this phrase is loaded in the current voice set. */
 export function canUseClips(keys) {
   const clips = currentClips();
   return !!clips && keys.every(k => clips.has(k));
 }
+/** True once the current voice set has finished loading (even if some clips failed). */
+export function voiceSetLoaded() { return !!sets.get(settings.voice)?.done; }
 
-/** Schedule recorded clips back to back starting at time t. */
+/** Schedule recorded clips back to back starting at time t (missing ones are skipped). */
 export function playClips(keys, t) {
-  window.__log?.(`clips ${keys.join('+')} at +${(t - ctx.currentTime).toFixed(2)} ctx=${ctx.state}`);
   const clips = currentClips();
+  window.__log?.(`clips ${keys.join('+')} at +${(t - ctx.currentTime).toFixed(2)} ctx=${ctx.state} loaded=${clips ? clips.size : 0}`);
+  if (!clips) return;
   let at = t;
   for (const k of keys) {
     const buf = clips.get(k);
+    if (!buf) continue;
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(voiceBus);
@@ -269,26 +271,7 @@ export function playClips(keys, t) {
   }
 }
 
-/** Speak with the phone's text-to-speech (fallback, or when chosen in settings). */
-export function speakText(text) {
-  window.__log?.(`tts "${text}" synth=${!!synth} speaking=${synth?.speaking} pending=${synth?.pending}`);
-  if (!synth) return;
-  const u = new SpeechSynthesisUtterance(text);
-  const v = !VOICE_SETS[settings.voice] && synth.getVoices().find(x => x.voiceURI === settings.voice);
-  const fallback = deviceVoices().find(x => /en[-_]US/i.test(x.lang) && x.localService) || deviceVoices()[0];
-  const voice = v || fallback;
-  if (voice) u.voice = voice;
-  u.lang = voice ? voice.lang : 'en-US';
-  u.rate = settings.rate;
-  u.volume = settings.volume;
-  // iOS ignores speak() straight after cancel(); give it a moment.
-  if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(() => synth.speak(u), 60); }
-  else synth.speak(u);
-}
-
-/** Say a phrase right now. phrase = { keys: [...clip keys], text: 'fallback text' } */
+/** Say a phrase right now. phrase = { keys: [...clip keys] } */
 export function sayNow(phrase) {
-  window.__log?.(`sayNow ${phrase.keys} canClips=${canUseClips(phrase.keys)} voice=${settings.voice}`);
-  if (canUseClips(phrase.keys)) playClips(phrase.keys, ctx.currentTime + 0.02);
-  else speakText(phrase.text);
+  playClips(phrase.keys, ctx.currentTime + 0.03);
 }

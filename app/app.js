@@ -4,7 +4,7 @@ import {
 } from './store.js';
 import {
   ctx, initAudio, unlockAudio, setVolume, silenceAll, SOUNDS,
-  canUseClips, playClips, speakText, sayNow, deviceVoices, onVoicesChanged,
+  canUseClips, playClips, sayNow, voiceSetLoaded,
   VOICE_SETS, loadVoiceSet, voiceReady, onAudioState, audioRunning,
 } from './audio.js';
 
@@ -22,6 +22,10 @@ const WARNINGS = [[60, 'min1', 'One minute'], [30, 'sec30', 'Thirty seconds']];
  * ================================================================== */
 // phase: idle | countdown | racing | paused | resuming | finished | gap
 let phase = 'idle';
+let updateReady = false;   // a new version is installed; reload when idle
+function reloadIfIdle() {
+  if (updateReady && phase === 'idle' && !seq.active && !document.querySelector('dialog[open]')) location.reload();
+}
 let events = [];
 let t0 = 0;            // AudioContext time the race clock reads 0:00
 let t1 = 0;            // resume "go" time (phase 'resuming')
@@ -105,17 +109,12 @@ function tick() {
     for (const e of events) {
       if (e.done || e.t - n > LOOKAHEAD) continue;
       if (e.voice) {
-        if (!e.resolved) {
-          e.resolved = true;
-          e.active = e.parts.filter(p => enabled(p.cond));
-          const keys = e.active.flatMap(p => p.keys);
-          if (!e.active.length || e.t < n - 0.3) { e.done = true; continue; }
-          if (canUseClips(keys)) { playClips(keys, e.t); e.done = true; continue; }
-        }
-        if (n >= e.t) { // text-to-speech fallback fires on time
-          e.done = true;
-          if (n < e.t + 1) speakText(e.active.map(p => p.text).join(', '));
-        }
+        const keys = e.parts.filter(p => enabled(p.cond)).flatMap(p => p.keys);
+        if (!keys.length || e.t < n - 0.3) { e.done = true; continue; }
+        // Clips still loading? Wait (up to the moment it's due) rather than skip.
+        if (!canUseClips(keys) && !voiceSetLoaded() && e.t > n + 0.05) continue;
+        e.done = true;
+        playClips(keys, Math.max(e.t, n + 0.02));
       } else {
         e.done = true;
         if (e.t < n - 0.25) continue; // too late (tab was asleep) — skip rather than play late
@@ -302,6 +301,7 @@ function fmtGap(s) {
 
 function setPhase(p) {
   phase = p;
+  if (p === 'idle' && updateReady) setTimeout(reloadIfIdle, 300);
   app.dataset.phase = p;
   if (p === 'paused') app.dataset.pausedFrom = pausedFrom;
   const labels = {
@@ -525,9 +525,7 @@ onTap(el.test, async () => {
   const t = now() + 0.1;
   SOUNDS.tick(t, 5); SOUNDS.tick(t + 0.5, 2); SOUNDS.go(t + 1);
   SOUNDS.lap(t + 2.2);
-  const p = { keys: ['lap1'], text: 'Lap 1' };
-  if (canUseClips(p.keys)) playClips(p.keys, t + 2.2 + LAP_VOICE_DELAY);
-  else setTimeout(() => speakText(p.text), (2.2 + LAP_VOICE_DELAY) * 1000);
+  playClips(['lap1'], t + 2.2 + LAP_VOICE_DELAY);
   SOUNDS.end(t + 3.4);
 });
 
@@ -556,18 +554,16 @@ function firstRunHelp() {
 /* ---------- settings ---------- */
 const s = {
   volume: $('volume'), voiceCountdown: $('voiceCountdown'), warnings: $('warnings'), countdownLen: $('countdownLen'),
-  voiceSelect: $('voiceSelect'), rate: $('rate'), rateRow: $('rateRow'), themeSeg: $('themeSeg'),
+  voiceSelect: $('voiceSelect'), themeSeg: $('themeSeg'),
   customList: $('customList'),
 };
 
 function buildVoiceSelect() {
   const opts = Object.entries(VOICE_SETS).map(([v, label]) => `<option value="${v}">${label}</option>`);
-  for (const v of deviceVoices()) opts.push(`<option value="${esc(v.voiceURI)}">Phone: ${esc(v.name)} (${esc(v.lang)})</option>`);
   s.voiceSelect.innerHTML = opts.join('');
   s.voiceSelect.value = settings.voice;
   if (s.voiceSelect.value !== settings.voice) s.voiceSelect.value = 'liam';
 }
-onVoicesChanged(buildVoiceSelect);
 
 function syncSettings() {
   s.volume.value = Math.round(settings.volume * 100);
@@ -575,8 +571,6 @@ function syncSettings() {
   s.warnings.checked = settings.warnings;
   s.countdownLen.value = String(settings.countdown);
   buildVoiceSelect();
-  s.rate.value = settings.rate;
-  s.rateRow.hidden = !!VOICE_SETS[settings.voice];
   for (const b of s.themeSeg.children) b.setAttribute('aria-pressed', String(b.dataset.theme === settings.theme));
   $('splashToggle').checked = settings.splash !== false;
   s.customList.innerHTML = settings.customRaces.length ? '' : '<li class="empty">None yet</li>';
@@ -601,10 +595,8 @@ $('splashToggle').addEventListener('change', e => { settings.splash = e.target.c
 s.countdownLen.addEventListener('change', () => { settings.countdown = Number(s.countdownLen.value); save(); render(); });
 s.voiceSelect.addEventListener('change', () => {
   settings.voice = s.voiceSelect.value; save();
-  s.rateRow.hidden = !!VOICE_SETS[settings.voice];
   loadVoiceSet(settings.voice);
 });
-s.rate.addEventListener('input', () => { settings.rate = Number(s.rate.value); save(); });
 $('previewVoice').addEventListener('click', async () => {
   unlockAudio({ fresh: !isRunning() && phase !== 'gap' });
   await Promise.all([loadVoiceSet(settings.voice), audioRunning()]);
@@ -867,6 +859,18 @@ setPhase('idle');
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // When an update is installed, reload into it, but never in the middle of a race.
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;               // first install, nothing to update
+    window.__log?.('update installed');
+    updateReady = true;
+    reloadIfIdle();
+  });
+  // An installed iPhone app resumes without reloading; check for updates when it comes back.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') navigator.serviceWorker.getRegistration().then(r => r?.update()).catch(() => {});
+  });
 }
 
 // Exposed for debugging in the browser console.

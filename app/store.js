@@ -1,6 +1,6 @@
 // Settings, race definitions and the race log, remembered on this device.
 
-export const APP_VERSION = '0.4.3';
+export const APP_VERSION = '0.4.4';
 
 // From the SWRA 2-pole criteria doc.
 export const BUILTIN_RACES = [
@@ -17,8 +17,7 @@ const DEFAULTS = {
   warnings: true,       // "One minute" / "Thirty seconds"
   countdown: 10,        // seconds
   volume: 0.9,          // 0..1
-  voice: 'liam',        // recorded set ('liam' | 'classic') or a device voiceURI
-  rate: 1.1,            // device voice speed
+  voice: 'liam',        // recorded voice set: 'liam' | 'classic'
   theme: 'dark',        // 'dark' | 'sun'
   splash: true,         // loading animation on launch
   customRaces: [],      // [{ id, name, total, lap }]
@@ -40,7 +39,8 @@ if (read('settings', null) === null) {
   settings.lapSounds = read('lapSounds', settings.lapSounds);
 }
 
-if (settings.voice === 'recorded') settings.voice = 'liam'; // v0.2.0 setting
+// Only the recorded voice sets exist now (phone voices were removed).
+if (!['liam', 'classic'].includes(settings.voice)) settings.voice = 'liam';
 
 export function save() { write('settings', settings); }
 
