@@ -7,14 +7,18 @@ let master = null;
 let voiceBus = null;
 let live = [];
 
-/* ---------- recorded voice clips (app/voice/*.m4a) ---------- */
+/* ---------- recorded voice clips (app/voice/<set>/*.m4a) ---------- */
+export const VOICE_SETS = {
+  liam: 'Liam (exciting)',
+  classic: 'Classic (calm)',
+};
 export function clipKeys() {
   const keys = ['go', 'final', 'min1', 'sec30', 'paused'];
   for (let i = 1; i <= 20; i++) keys.push(`n${i}`, `heat${i}`);
   for (let i = 1; i <= 30; i++) keys.push(`lap${i}`);
   return keys;
 }
-const clips = new Map();
+const sets = new Map(); // set name -> { clips: Map, ready: Promise }
 
 function decode(ab) {
   return new Promise((resolve, reject) => {
@@ -22,15 +26,24 @@ function decode(ab) {
     if (p && p.then) p.then(resolve, reject);
   });
 }
-async function loadClips() {
-  await Promise.all(clipKeys().map(async key => {
-    try {
-      const res = await fetch(`voice/${key}.m4a`);
-      if (!res.ok) return;
-      clips.set(key, await decode(await res.arrayBuffer()));
-    } catch {}
-  }));
+/** Load (once) a recorded voice set. Resolves when all its clips are decoded. */
+export function loadVoiceSet(name) {
+  if (!VOICE_SETS[name]) return Promise.resolve();
+  if (!sets.has(name)) {
+    const clips = new Map();
+    const ready = Promise.all(clipKeys().map(async key => {
+      try {
+        const res = await fetch(`voice/${name}/${key}.m4a`);
+        if (!res.ok) return;
+        clips.set(key, await decode(await res.arrayBuffer()));
+      } catch {}
+    }));
+    sets.set(name, { clips, ready });
+  }
+  return sets.get(name).ready;
 }
+const currentClips = () => sets.get(settings.voice)?.clips;
+export let voiceReady = Promise.resolve();
 
 export function initAudio() {
   if (ctx) return ctx;
@@ -45,7 +58,7 @@ export function initAudio() {
   voiceBus.gain.value = 1;
   voiceBus.connect(master);
   master.connect(comp).connect(ctx.destination);
-  loadClips();
+  voiceReady = loadVoiceSet(settings.voice);
   return ctx;
 }
 
@@ -131,11 +144,13 @@ function unlockSpeech() {
 
 /** True if this phrase will be played from recorded clips (sample-accurate). */
 export function canUseClips(keys) {
-  return settings.voice === 'recorded' && keys.every(k => clips.has(k));
+  const clips = currentClips();
+  return !!clips && keys.every(k => clips.has(k));
 }
 
 /** Schedule recorded clips back to back starting at time t. */
 export function playClips(keys, t) {
+  const clips = currentClips();
   let at = t;
   for (const k of keys) {
     const buf = clips.get(k);
@@ -152,7 +167,7 @@ export function playClips(keys, t) {
 export function speakText(text) {
   if (!synth) return;
   const u = new SpeechSynthesisUtterance(text);
-  const v = settings.voice !== 'recorded' && synth.getVoices().find(x => x.voiceURI === settings.voice);
+  const v = !VOICE_SETS[settings.voice] && synth.getVoices().find(x => x.voiceURI === settings.voice);
   const fallback = deviceVoices().find(x => /en[-_]US/i.test(x.lang) && x.localService) || deviceVoices()[0];
   const voice = v || fallback;
   if (voice) u.voice = voice;

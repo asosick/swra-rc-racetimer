@@ -10,13 +10,14 @@
 #                        Store it once (prompts for the key, nothing is echoed):
 #                          security add-generic-password -U -s swra-elevenlabs -a "$USER" -w
 #                        It can also go in tools/.env (gitignored) or be exported.
-#   ELEVENLABS_VOICE_ID  voice to use (default: George, JBFqnCBsd6RMkjVDRZzb)
-#   ELEVENLABS_MODEL     model id (default: eleven_multilingual_v2)
+#   ELEVENLABS_VOICE_ID  voice to use (default: Liam, TX3LPaxmHKxFdv7VOQHJ)
+#   ELEVENLABS_MODEL     model id (default: eleven_v4)
 #   ONLY="lap1 go"       regenerate just these clips
 #   OUT=dir              write somewhere other than app/voice
 #
-# To use a real person's voice instead, record the phrases below and save them in
-# app/voice/ with the same file names (mono .m4a, silence trimmed).
+# Output: app/voice/liam/ (ElevenLabs) or app/voice/classic/ (say). The app lets
+# you pick either set in Settings. To use a real person's voice, record the
+# phrases below into a set folder with the same file names (mono .m4a).
 #
 # Needs: ffmpeg, curl (and jq for --voices).
 set -euo pipefail
@@ -25,13 +26,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -f "$ROOT/tools/.env" ]] && set -a && source "$ROOT/tools/.env" && set +a
 
 PROVIDER="${1:-}"
-OUT="${OUT:-$ROOT/app/voice}"
+OUT_SET=""
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/voice.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 # ---------------------------------------------------------------------------
 # Phrases. key|text  (keys must match clipKeys() in app/audio.js and app/sw.js)
 # Numbers are spelled out: TTS engines say them more naturally that way.
+# [excited]/[shouting] are delivery tags for ElevenLabs v3+ models; they are
+# stripped for other engines.
 # ---------------------------------------------------------------------------
 WORDS=(zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen
   fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three
@@ -39,10 +42,14 @@ WORDS=(zero one two three four five six seven eight nine ten eleven twelve thirt
 cap() { printf '%s' "$(tr '[:lower:]' '[:upper:]' <<< "${1:0:1}")${1:1}"; }
 
 CLIPS=()
-for i in $(seq 1 20); do CLIPS+=("n$i|$(cap "${WORDS[$i]}")!"); done
-for i in $(seq 1 30); do CLIPS+=("lap$i|Lap ${WORDS[$i]}."); done
-for i in $(seq 1 20); do CLIPS+=("heat$i|Heat ${WORDS[$i]}."); done
-CLIPS+=("go|Go!" "final|Final lap!" "min1|One minute." "sec30|Thirty seconds." "paused|Race paused.")
+for i in $(seq 1 20); do
+  if (( i <= 3 )); then CLIPS+=("n$i|[shouting] $(cap "${WORDS[$i]}")!"); else CLIPS+=("n$i|[excited] $(cap "${WORDS[$i]}")!"); fi
+done
+for i in $(seq 1 30); do CLIPS+=("lap$i|[excited] Lap ${WORDS[$i]}!"); done
+for i in $(seq 1 20); do CLIPS+=("heat$i|[excited] Heat ${WORDS[$i]}!"); done
+CLIPS+=("go|[shouting] GO!" "final|[shouting] FINAL LAP!" "min1|[excited] One minute!" "sec30|[excited] Thirty seconds!" "paused|Race paused.")
+
+strip_tags() { sed -E 's/\[[a-z ]+\] ?//g' <<< "$1"; }
 
 # ---------------------------------------------------------------------------
 # Providers: synth <text> <outfile-without-extension>  -> writes an audio file, echoes its path
@@ -51,7 +58,8 @@ EL_API="https://api.elevenlabs.io/v1"
 
 synth_elevenlabs() {
   local text="$1" out="$2.mp3" body code
-  body=$(printf '{"text":%s,"model_id":"%s","seed":7,"voice_settings":{"stability":0.6,"similarity_boost":0.8,"style":0.2,"use_speaker_boost":true}}' \
+  [[ "$EL_MODEL" =~ ^eleven_v[3-9] ]] || text="$(strip_tags "$text")"
+  body=$(printf '{"text":%s,"model_id":"%s","seed":7,"voice_settings":{"stability":0.0,"similarity_boost":0.8}}' \
     "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" "$EL_MODEL")
   code=$(curl -sS -o "$out" -w '%{http_code}' -X POST \
     "$EL_API/text-to-speech/$EL_VOICE?output_format=mp3_44100_128" \
@@ -64,7 +72,7 @@ synth_elevenlabs() {
 }
 
 synth_say() {
-  local text="$1" out="$2.aiff"
+  local text; text="$(strip_tags "$1")"; local out="$2.aiff"
   say -v "$SAY_VOICE" -r 195 -o "$out" "$text"
   echo "$out"
 }
@@ -84,14 +92,16 @@ case "$PROVIDER" in
         | jq -r '.voices[] | "\(.voice_id)  \(.name)  [\(.labels.gender // "-"), \(.labels.accent // "-"), \(.labels.description // .labels.descriptive // "-")]"'
       exit 0
     fi
-    EL_VOICE="${ELEVENLABS_VOICE_ID:-JBFqnCBsd6RMkjVDRZzb}"
-    EL_MODEL="${ELEVENLABS_MODEL:-eleven_multilingual_v2}"
+    EL_VOICE="${ELEVENLABS_VOICE_ID:-TX3LPaxmHKxFdv7VOQHJ}"
+    EL_MODEL="${ELEVENLABS_MODEL:-eleven_v4}"
     SYNTH=synth_elevenlabs
+    OUT_SET=liam
     echo "ElevenLabs voice $EL_VOICE, model $EL_MODEL"
     ;;
   say)
     SAY_VOICE="${2:-Samantha}"
     SYNTH=synth_say
+    OUT_SET=classic
     ;;
   *)
     sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
@@ -99,7 +109,23 @@ case "$PROVIDER" in
     ;;
 esac
 
+OUT="${OUT:-$ROOT/app/voice/$OUT_SET}"
 mkdir -p "$OUT"
+
+# Countdown numbers are one second apart, so squeeze any that run long
+# (pitch is kept; only the pace changes).
+MAX_COUNT=0.8
+fit_clip() {
+  local f="$1" d tempo
+  d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")
+  if awk -v d="$d" -v m="$MAX_COUNT" 'BEGIN{exit !(d>m)}'; then
+    tempo=$(awk -v d="$d" -v m="$MAX_COUNT" 'BEGIN{printf "%.3f", d/(m-0.03)}')
+    ffmpeg -loglevel error -y -i "$f" -af "atempo=$tempo" -ar 44100 -ac 1 -c:a aac -b:a 48k "$f.tmp.m4a"
+    mv "$f.tmp.m4a" "$f"
+  fi
+}
+[[ "${1:-}" == "--fit-only" ]] && exit 0
+
 n=0
 for entry in "${CLIPS[@]}"; do
   key="${entry%%|*}"; text="${entry#*|}"
@@ -109,6 +135,7 @@ for entry in "${CLIPS[@]}"; do
   ffmpeg -loglevel error -y -i "$src" \
     -af "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-14:TP=-1:LRA=7" \
     -ar 44100 -ac 1 -c:a aac -b:a 48k "$OUT/$key.m4a"
+  [[ "$key" =~ ^(n[0-9]+|go)$ ]] && fit_clip "$OUT/$key.m4a"
   n=$((n + 1))
   printf '.'
 done

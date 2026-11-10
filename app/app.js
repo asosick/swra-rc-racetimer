@@ -5,6 +5,7 @@ import {
 import {
   ctx, initAudio, unlockAudio, setVolume, silenceAll, SOUNDS,
   canUseClips, playClips, speakText, sayNow, deviceVoices, onVoicesChanged,
+  VOICE_SETS, loadVoiceSet, voiceReady,
 } from './audio.js';
 
 const LOOKAHEAD = 1.5;      // seconds of audio scheduled ahead of the clock
@@ -471,11 +472,15 @@ function cancelHold() {
   clearTimeout(holdTimer); holdTimer = null;
   el.main.classList.remove('holding');
 }
+// After a hold stops the race the button turns into Start while the finger is
+// still down; swallow that same press so lifting it doesn't start a new race.
+let swallowPress = false;
 el.main.addEventListener('pointerdown', e => {
+  swallowPress = false;
   if (!isRunning()) return;
   e.preventDefault();
   el.main.classList.add('holding');
-  holdTimer = setTimeout(() => { cancelHold(); stop(); }, HOLD_MS);
+  holdTimer = setTimeout(() => { cancelHold(); swallowPress = true; stop(); }, HOLD_MS);
 });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => el.main.addEventListener(t, () => {
   if (holdTimer) {
@@ -485,6 +490,7 @@ el.main.addEventListener('pointerdown', e => {
 }));
 el.main.addEventListener('contextmenu', e => e.preventDefault());
 el.main.addEventListener('click', () => {
+  if (swallowPress) { swallowPress = false; return; }
   if (isRunning()) return; // handled by hold
   if (phase === 'idle' || phase === 'gap') start();
   else if (phase === 'finished') nextFromFinished();
@@ -526,11 +532,11 @@ const s = {
 };
 
 function buildVoiceSelect() {
-  const opts = [`<option value="recorded">Recorded (built in)</option>`];
+  const opts = Object.entries(VOICE_SETS).map(([v, label]) => `<option value="${v}">${label}</option>`);
   for (const v of deviceVoices()) opts.push(`<option value="${esc(v.voiceURI)}">Phone: ${esc(v.name)} (${esc(v.lang)})</option>`);
   s.voiceSelect.innerHTML = opts.join('');
   s.voiceSelect.value = settings.voice;
-  if (s.voiceSelect.value !== settings.voice) s.voiceSelect.value = 'recorded';
+  if (s.voiceSelect.value !== settings.voice) s.voiceSelect.value = 'liam';
 }
 onVoicesChanged(buildVoiceSelect);
 
@@ -541,7 +547,7 @@ function syncSettings() {
   s.countdownLen.value = String(settings.countdown);
   buildVoiceSelect();
   s.rate.value = settings.rate;
-  s.rateRow.hidden = settings.voice === 'recorded';
+  s.rateRow.hidden = !!VOICE_SETS[settings.voice];
   for (const b of s.themeSeg.children) b.setAttribute('aria-pressed', String(b.dataset.theme === settings.theme));
   s.customList.innerHTML = settings.customRaces.length ? '' : '<li class="empty">None yet</li>';
   for (const r of settings.customRaces) {
@@ -554,16 +560,24 @@ function syncSettings() {
     li.appendChild(del);
     s.customList.appendChild(li);
   }
-  $('about').textContent = `SWRA Race Timer v${APP_VERSION}`;
+  $('about').innerHTML = `SWRA Race Timer v${APP_VERSION}<br>Liam voice by <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>`;
 }
 
 s.volume.addEventListener('input', () => { settings.volume = s.volume.value / 100; setVolume(settings.volume); save(); });
 s.voiceCountdown.addEventListener('change', () => { settings.voiceCountdown = s.voiceCountdown.checked; save(); });
 s.warnings.addEventListener('change', () => { settings.warnings = s.warnings.checked; save(); });
 s.countdownLen.addEventListener('change', () => { settings.countdown = Number(s.countdownLen.value); save(); render(); });
-s.voiceSelect.addEventListener('change', () => { settings.voice = s.voiceSelect.value; save(); s.rateRow.hidden = settings.voice === 'recorded'; });
+s.voiceSelect.addEventListener('change', () => {
+  settings.voice = s.voiceSelect.value; save();
+  s.rateRow.hidden = !!VOICE_SETS[settings.voice];
+  loadVoiceSet(settings.voice);
+});
 s.rate.addEventListener('input', () => { settings.rate = Number(s.rate.value); save(); });
-$('previewVoice').addEventListener('click', () => { unlockAudio(); sayNow({ keys: ['lap3'], text: 'Lap 3' }); });
+$('previewVoice').addEventListener('click', async () => {
+  unlockAudio();
+  await loadVoiceSet(settings.voice);
+  sayNow({ keys: ['lap3'], text: 'Lap 3' });
+});
 s.themeSeg.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   settings.theme = b.dataset.theme; save(); applyTheme(); syncSettings();
@@ -693,6 +707,22 @@ function refreshAll() { buildRaceButtons(); setPhase(phase); }
 
 applyTheme();
 initAudio();
+
+// Loading screen: show it briefly, until the voice clips are ready (tap to skip).
+(() => {
+  const splash = $('splash');
+  if (!splash) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) splash.querySelector('svg')?.pauseAnimations?.();
+  let gone = false;
+  const hide = () => {
+    if (gone) return; gone = true;
+    splash.classList.add('hide');
+    setTimeout(() => splash.remove(), 500);
+  };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  Promise.race([Promise.all([wait(2200), voiceReady]), wait(5000)]).then(hide);
+  splash.addEventListener('click', hide);
+})();
 syncLapToggle();
 buildRaceButtons();
 setPhase('idle');

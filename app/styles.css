@@ -275,3 +275,32 @@ input.switch:checked::after { transform: translateX(18px); }
 .add-race { display: grid; grid-template-columns: 1fr 84px 76px auto; gap: 8px; margin-top: 10px; }
 .add-race input { min-width: 0; width: 100%; }
 @media (max-width: 400px) { .add-race { grid-template-columns: 1fr 1fr; } .add-race input:first-child { grid-column: 1 / -1; } }
+
+/* ---------- loading screen ---------- */
+.splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: radial-gradient(ellipse at 50% 38%, #1c2433 0%, #0b0d12 70%);
+  transition: opacity .45s ease, transform .45s ease;
+}
+[data-theme="sun"] .splash { background: radial-gradient(ellipse at 50% 38%, #fff3a3 0%, #ffd400 75%); }
+.splash.hide { opacity: 0; transform: scale(1.04); pointer-events: none; }
+.splash-scene { width: min(92vw, 520px); height: auto; overflow: visible; }
+.course-line { stroke: rgba(255,255,255,.22); }
+[data-theme="sun"] .course-line { stroke: rgba(0,0,0,.35); }
+.trail circle { fill: #fff; }
+[data-theme="sun"] .trail circle { fill: #000; }
+.splash-title { text-align: center; margin-top: 6px; }
+.splash-brand {
+  font-size: clamp(40px, 13vw, 72px); font-weight: 900; letter-spacing: .12em; line-height: 1;
+  color: var(--accent); animation: rise .7s ease-out both;
+}
+.splash-name {
+  font-size: clamp(14px, 4vw, 20px); font-weight: 700; letter-spacing: .5em; text-transform: uppercase;
+  color: var(--text); margin: 6px 0 18px .5em; animation: rise .7s .12s ease-out both;
+}
+.splash-bar { width: 140px; height: 4px; border-radius: 2px; background: rgba(127,127,127,.25); margin: 0 auto; overflow: hidden; }
+.splash-bar span { display: block; height: 100%; width: 40%; background: var(--accent); border-radius: 2px; animation: load 1.1s ease-in-out infinite; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes load { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
+@media (prefers-reduced-motion: reduce) { .splash-bar span, .splash-brand, .splash-name { animation: none; } }

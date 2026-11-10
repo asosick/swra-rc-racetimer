@@ -13,8 +13,114 @@
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved theme before first paint (no flash of the wrong colours).
+    try { document.documentElement.dataset.theme = JSON.parse(localStorage.getItem('settings') || '{}').theme || 'dark'; } catch (e) {}
+  </script>
 </head>
 <body>
+  <!-- ---------- Loading screen ---------- -->
+  <div class="splash" id="splash" role="img" aria-label="SWRA Race Timer loading">
+    <svg class="splash-scene" viewBox="0 0 360 230" aria-hidden="true">
+      <defs>
+        <path id="course" d="M30,115 A150,74 0 1,0 330,115 A150,74 0 1,0 30,115"/>
+        <linearGradient id="fuse" x1="0" y1="-1" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff6b5e"/><stop offset=".5" stop-color="#e8382c"/><stop offset="1" stop-color="#a8211a"/>
+        </linearGradient>
+        <linearGradient id="wing" x1="0" y1="-1" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffe680"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#e0a800"/>
+        </linearGradient>
+        <radialGradient id="canopy" cx=".35" cy=".35" r=".8">
+          <stop offset="0" stop-color="#bfe6ff"/><stop offset=".35" stop-color="#3a6ea5"/><stop offset="1" stop-color="#14243d"/>
+        </radialGradient>
+        <radialGradient id="glow" r=".5"><stop offset="0" stop-color="#ff8a2a" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/></radialGradient>
+        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+        <!-- Top-down pylon racer, nose pointing +x -->
+        <g id="plane">
+          <path d="M-13,-1.2 L-16.5,-8 L-19.5,-8 L-18.5,-1.2 L-18.5,1.2 L-19.5,8 L-16.5,8 L-13,1.2 Z" fill="url(#wing)" stroke="#5a3d00" stroke-width=".5"/>
+          <path d="M8,-2 L4.5,-19 L0.5,-19 L-1.5,-2 L-1.5,2 L0.5,19 L4.5,19 L8,2 Z" fill="url(#wing)" stroke="#5a3d00" stroke-width=".5"/>
+          <path d="M3.4,-18.6 L4.5,-19 L0.5,-19 L0.9,-18.6 Z M3.4,18.6 L4.5,19 L0.5,19 L0.9,18.6 Z" fill="#e8382c"/>
+          <path d="M19,0 C19,-2.6 14,-3.4 6,-3.4 L-18,-1.4 L-18,1.4 L6,3.4 C14,3.4 19,2.6 19,0 Z" fill="url(#fuse)" stroke="#5c120d" stroke-width=".5"/>
+          <path d="M-17,0 L9,0" stroke="#fff" stroke-width=".9" stroke-opacity=".85"/>
+          <ellipse cx="6.5" cy="0" rx="4.2" ry="2.1" fill="url(#canopy)"/>
+          <circle cx="19.3" cy="0" r="1.3" fill="#ddd"/>
+          <ellipse class="prop" cx="20.2" cy="0" rx=".9" ry="8" fill="#fff" fill-opacity=".45">
+            <animate attributeName="ry" values="8;2;8" dur=".09s" repeatCount="indefinite"/>
+          </ellipse>
+        </g>
+      </defs>
+
+      <!-- course -->
+      <ellipse cx="180" cy="115" rx="150" ry="74" fill="none" class="course-line" stroke-width="1.5" stroke-dasharray="3 7">
+        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite"/>
+      </ellipse>
+
+      <!-- pylons -->
+      <g class="pylon" transform="translate(98 115)">
+        <circle r="18" fill="url(#glow)"><animate attributeName="r" values="14;20;14" dur="1.6s" repeatCount="indefinite"/></circle>
+        <ellipse cx="3" cy="4" rx="9" ry="7" fill="#000" opacity=".3" filter="url(#soft)"/>
+        <circle r="8.5" fill="#ff7a1a"/><circle r="6" fill="#fff"/><circle r="3.6" fill="#ff7a1a"/><circle r="1.3" fill="#fff"/>
+      </g>
+      <g class="pylon" transform="translate(262 115)">
+        <circle r="18" fill="url(#glow)"><animate attributeName="r" values="14;20;14" dur="1.6s" begin=".8s" repeatCount="indefinite"/></circle>
+        <ellipse cx="3" cy="4" rx="9" ry="7" fill="#000" opacity=".3" filter="url(#soft)"/>
+        <circle r="8.5" fill="#ff7a1a"/><circle r="6" fill="#fff"/><circle r="3.6" fill="#ff7a1a"/><circle r="1.3" fill="#fff"/>
+      </g>
+
+      <!-- checkered flag (waving) -->
+      <g transform="translate(166 86)">
+        <rect x="-1.6" y="-2" width="2.4" height="42" rx="1.2" fill="#c9ced8"/>
+        <circle cx="-.4" cy="-2.5" r="2" fill="#ffd23f"/>
+        <g class="flag">
+          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" repeatCount="indefinite"/>
+            <rect x="1" y="0" width="6" height="6" fill="#fff"/><rect x="1" y="6" width="6" height="6" fill="#111"/><rect x="1" y="12" width="6" height="6" fill="#fff"/><rect x="1" y="18" width="6" height="6" fill="#111"/></g>
+          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.15s" repeatCount="indefinite"/>
+            <rect x="7" y="0" width="6" height="6" fill="#111"/><rect x="7" y="6" width="6" height="6" fill="#fff"/><rect x="7" y="12" width="6" height="6" fill="#111"/><rect x="7" y="18" width="6" height="6" fill="#fff"/></g>
+          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.3s" repeatCount="indefinite"/>
+            <rect x="13" y="0" width="6" height="6" fill="#fff"/><rect x="13" y="6" width="6" height="6" fill="#111"/><rect x="13" y="12" width="6" height="6" fill="#fff"/><rect x="13" y="18" width="6" height="6" fill="#111"/></g>
+          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.45s" repeatCount="indefinite"/>
+            <rect x="19" y="0" width="6" height="6" fill="#111"/><rect x="19" y="6" width="6" height="6" fill="#fff"/><rect x="19" y="12" width="6" height="6" fill="#111"/><rect x="19" y="18" width="6" height="6" fill="#fff"/></g>
+          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.6s" repeatCount="indefinite"/>
+            <rect x="25" y="0" width="6" height="6" fill="#fff"/><rect x="25" y="6" width="6" height="6" fill="#111"/><rect x="25" y="12" width="6" height="6" fill="#fff"/><rect x="25" y="18" width="6" height="6" fill="#111"/></g>
+        </g>
+      </g>
+
+      <!-- smoke trail (dots chase the plane along the course) -->
+      <g class="trail" id="trail"></g>
+
+      <!-- plane shadow, then plane -->
+      <g transform="translate(7 11)" opacity=".28" filter="url(#soft)">
+        <g><animateMotion dur="3.2s" begin="-1s" repeatCount="indefinite" rotate="auto"><mpath href="#course"/></animateMotion>
+          <g transform="scale(1.45)" fill="#000"><path d="M-13,-1.2 L-16.5,-8 L-19.5,-8 L-18.5,-1.2 L-18.5,1.2 L-19.5,8 L-16.5,8 L-13,1.2 Z"/><path d="M8,-2 L4.5,-19 L0.5,-19 L-1.5,-2 L-1.5,2 L0.5,19 L4.5,19 L8,2 Z"/><path d="M19,0 C19,-2.6 14,-3.4 6,-3.4 L-18,-1.4 L-18,1.4 L6,3.4 C14,3.4 19,2.6 19,0 Z"/></g></g>
+      </g>
+      <g transform="scale(1)">
+        <g><animateMotion dur="3.2s" begin="-1s" repeatCount="indefinite" rotate="auto"><mpath href="#course"/></animateMotion>
+          <use href="#plane" transform="scale(1.45)"/></g>
+      </g>
+    </svg>
+    <script>
+      // Smoke trail: dots that follow the plane a little behind it.
+      (function () {
+        var ns = 'http://www.w3.org/2000/svg', trail = document.getElementById('trail');
+        for (var k = 4; k <= 22; k++) {
+          var c = document.createElementNS(ns, 'circle');
+          c.setAttribute('r', (3.2 - k * 0.11).toFixed(2));
+          c.setAttribute('fill-opacity', (0.55 - k * 0.023).toFixed(3));
+          var m = document.createElementNS(ns, 'animateMotion');
+          m.setAttribute('dur', '3.2s'); m.setAttribute('repeatCount', 'indefinite');
+          m.setAttribute('begin', (-1 + k * 0.03).toFixed(3) + 's');
+          var mp = document.createElementNS(ns, 'mpath'); mp.setAttribute('href', '#course');
+          m.appendChild(mp); c.appendChild(m); trail.appendChild(c);
+        }
+      })();
+    </script>
+    <div class="splash-title">
+      <div class="splash-brand">SWRA</div>
+      <div class="splash-name">Race Timer</div>
+      <div class="splash-bar"><span></span></div>
+    </div>
+  </div>
+
   <main class="app" data-phase="idle">
     <header class="controls">
       <div class="seg" role="radiogroup" aria-label="Race type" id="raceTypes"></div>

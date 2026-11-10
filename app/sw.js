@@ -1,5 +1,5 @@
 // Bump VERSION whenever app files change so phones pick up the new build.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `race-timer-${VERSION}`;
 
 // Must match clipKeys() in audio.js.
@@ -9,7 +9,7 @@ for (let i = 1; i <= 30; i++) CLIPS.push(`lap${i}`);
 
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'audio.js', 'store.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
-  ...CLIPS.map(k => `voice/${k}.m4a`)];
+  ...['liam', 'classic'].flatMap(set => CLIPS.map(k => `voice/${set}/${k}.m4a`))];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
