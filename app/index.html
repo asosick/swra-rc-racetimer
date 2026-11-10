@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Race Timer">
+  <title>SWRA Race Timer</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app" data-phase="idle">
+    <header class="controls">
+      <div class="seg" role="radiogroup" aria-label="Race type" id="raceTypes"></div>
+      <button class="toggle" id="lapSounds" role="switch" aria-checked="true">
+        <span class="toggle-dot"></span><span>Lap sounds</span>
+      </button>
+    </header>
+
+    <section class="display" aria-live="polite">
+      <div class="status" id="status">Ready</div>
+      <div class="big" id="big">0</div>
+      <div class="sub" id="sub">of 10 laps</div>
+      <div class="lapbar" aria-hidden="true"><div class="lapbar-fill" id="lapFill"></div></div>
+      <div class="clock">
+        <div><span class="clock-label">Remaining</span><span class="clock-val" id="remaining">2:30.0</span></div>
+        <div><span class="clock-label">Elapsed</span><span class="clock-val" id="elapsed">0:00.0</span></div>
+      </div>
+    </section>
+
+    <footer class="actions">
+      <button class="main-btn" id="mainBtn">Start</button>
+      <button class="test-btn" id="testBtn" title="Play the sounds so you can check the speaker">Test sound</button>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
