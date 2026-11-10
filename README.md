@@ -29,7 +29,14 @@ Other features:
 
 Spoken callouts use the recorded clips in `app/voice/`, which are scheduled on the audio clock for exact timing. If a clip is missing, or a phone voice is picked in settings, the app falls back to the phone's text-to-speech.
 
-The clips were generated with `tools/make-voice.sh` using a macOS system voice. Apple's licence for those voices is aimed at personal use, so before this goes wide it's worth recording a real person's voice instead. Record the same phrases, save them with the same file names, and you're done. The phrase list is in the script.
+The clips are generated once with `tools/make-voice.sh` and committed, so they sound the same every time:
+
+```bash
+security add-generic-password -U -s swra-elevenlabs -a "$USER" -w   # store your ElevenLabs key in the Keychain (once)
+tools/make-voice.sh elevenlabs                                     # or: tools/make-voice.sh say  (macOS voice)
+```
+
+The current clips were generated with a macOS system voice. Apple's licence for those voices is aimed at personal use, so before this goes wide it's worth recording a real person's voice instead. Record the same phrases, save them with the same file names, and you're done. The phrase list is in the script.
 
 ## Install on a phone
 
