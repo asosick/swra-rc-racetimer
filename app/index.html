@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -18,27 +18,121 @@
   <main class="app" data-phase="idle">
     <header class="controls">
       <div class="seg" role="radiogroup" aria-label="Race type" id="raceTypes"></div>
-      <button class="toggle" id="lapSounds" role="switch" aria-checked="true">
-        <span class="toggle-dot"></span><span>Lap sounds</span>
-      </button>
+      <div class="toolbar">
+        <button class="toggle" id="lapSounds" role="switch" aria-checked="true">
+          <span class="toggle-dot"></span><span>Lap sounds</span>
+        </button>
+        <span class="spacer"></span>
+        <button class="icon-btn" id="openHeats" aria-label="Heats">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Heats</span>
+        </button>
+        <button class="icon-btn" id="openLog" aria-label="Race log">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Log</span>
+        </button>
+        <button class="icon-btn" id="openSettings" aria-label="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span>
+        </button>
+      </div>
     </header>
 
     <section class="display" aria-live="polite">
+      <div class="heat-banner" id="heatBanner" hidden></div>
       <div class="status" id="status">Ready</div>
       <div class="big" id="big">0</div>
       <div class="sub" id="sub">of 10 laps</div>
       <div class="lapbar" aria-hidden="true"><div class="lapbar-fill" id="lapFill"></div></div>
       <div class="clock">
         <div><span class="clock-label">Remaining</span><span class="clock-val" id="remaining">2:30.0</span></div>
+        <div><span class="clock-label">Next lap</span><span class="clock-val" id="nextLap">15.0</span></div>
         <div><span class="clock-label">Elapsed</span><span class="clock-val" id="elapsed">0:00.0</span></div>
       </div>
     </section>
 
     <footer class="actions">
-      <button class="main-btn" id="mainBtn">Start</button>
-      <button class="test-btn" id="testBtn" title="Play the sounds so you can check the speaker">Test sound</button>
+      <div class="action-row">
+        <button class="second-btn" id="secondBtn" hidden>Pause</button>
+        <button class="main-btn" id="mainBtn"><span class="main-label">Start</span></button>
+      </div>
+      <div class="hint" id="hint">&nbsp;</div>
+      <button class="link-btn" id="testBtn">Test sound</button>
     </footer>
   </main>
-  <script src="app.js"></script>
+
+  <!-- ---------- Settings ---------- -->
+  <dialog class="sheet" id="settingsSheet">
+    <form method="dialog" class="sheet-head"><h2>Settings</h2><button class="close" aria-label="Close">Done</button></form>
+    <div class="sheet-body">
+      <section>
+        <h3>Sound</h3>
+        <label class="row">Volume <input type="range" id="volume" min="0" max="100" step="1"></label>
+        <label class="row">Voice countdown <input type="checkbox" class="switch" id="voiceCountdown"></label>
+        <label class="row">Time warnings <small>“One minute”, “Thirty seconds”</small><input type="checkbox" class="switch" id="warnings"></label>
+        <label class="row">Countdown length
+          <select id="countdownLen"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="20">20 s</option></select>
+        </label>
+      </section>
+      <section>
+        <h3>Voice</h3>
+        <label class="row">Voice <select id="voiceSelect"></select></label>
+        <label class="row" id="rateRow">Speaking speed <input type="range" id="rate" min="0.7" max="1.6" step="0.05"></label>
+        <button type="button" class="pill" id="previewVoice">Preview voice</button>
+      </section>
+      <section>
+        <h3>Display</h3>
+        <div class="row">Theme
+          <div class="mini-seg" id="themeSeg">
+            <button type="button" data-theme="dark">Dark</button>
+            <button type="button" data-theme="sun">Sunlight</button>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h3>Custom race types</h3>
+        <ul class="list" id="customList"></ul>
+        <form class="add-race" id="addRaceForm">
+          <input id="crName" placeholder="Name" maxlength="16" required>
+          <input id="crTotal" type="number" inputmode="numeric" min="10" max="3600" placeholder="Race s" required>
+          <input id="crLap" type="number" inputmode="numeric" min="2" max="600" placeholder="Lap s" required>
+          <button class="pill">Add</button>
+        </form>
+      </section>
+      <p class="about" id="about"></p>
+    </div>
+  </dialog>
+
+  <!-- ---------- Heats ---------- -->
+  <dialog class="sheet" id="heatsSheet">
+    <form method="dialog" class="sheet-head"><h2>Heats</h2><button class="close" aria-label="Close">Done</button></form>
+    <div class="sheet-body">
+      <p class="note">Queue up a run of heats. Between heats the app can count down a break and start the next heat on its own.</p>
+      <ol class="list heats" id="heatList"></ol>
+      <div class="btn-row">
+        <button type="button" class="pill" id="addHeat">+ Add heat</button>
+        <button type="button" class="pill ghost" id="clearHeats">Clear</button>
+      </div>
+      <label class="row">Break between heats
+        <select id="heatGap">
+          <option value="0">Manual start</option><option value="30">30 s</option><option value="60">1 min</option>
+          <option value="120">2 min</option><option value="180">3 min</option><option value="300">5 min</option>
+        </select>
+      </label>
+      <button type="button" class="wide-btn" id="seqToggle">Start heat sequence</button>
+    </div>
+  </dialog>
+
+  <!-- ---------- Log ---------- -->
+  <dialog class="sheet" id="logSheet">
+    <form method="dialog" class="sheet-head"><h2>Race log</h2><button class="close" aria-label="Close">Done</button></form>
+    <div class="sheet-body">
+      <div class="btn-row">
+        <button type="button" class="pill" id="shareLog">Share</button>
+        <button type="button" class="pill" id="csvLog">Download CSV</button>
+        <button type="button" class="pill ghost" id="clearLog">Clear</button>
+      </div>
+      <ul class="list log" id="logList"></ul>
+    </div>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

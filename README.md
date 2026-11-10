@@ -11,7 +11,25 @@ Timer for SWRA 2-pole races, built as an installable web app (PWA). It runs in t
 | Silver    | 120 s  | 12 s           | 10   |
 | Gold      | 90 s   | 9 s            | 10   |
 
-**Start** runs a 10-second countdown (beep each second, higher beeps for 3-2-1, long tone on GO), then the race clock. With **Lap sounds** on, each lap plays a short beep and then speaks the lap number. The race ends with a rising three-note chirp and a long warbling horn. **Stop** resets the timer and laps to zero.
+**Start** runs a countdown (10 s by default): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race ends with a rising three-note chirp and a long warbling horn.
+
+During a race:
+
+- **Pause / Resume**: pause freezes the clock and says "Race paused". Resume plays a 3-2-1-go lead-in, then the race continues where it stopped.
+- **Hold Stop** (about 1 second) to end the race and reset to zero. A quick tap does nothing, so a race can't be stopped by accident.
+- The screen shows the lap count, time remaining, time to the next lap, and time elapsed.
+
+Other features:
+
+- **Heats**: queue up a run of heats (any mix of race types). Set a break between heats (30 s to 5 min) and the next heat starts on its own, announced as "Heat 3" before its countdown. You can also choose manual start.
+- **Race log**: every finished or stopped race is saved on the phone. Share it as text or download it as CSV.
+- **Settings**: volume, voice countdown on/off, time warnings ("One minute", "Thirty seconds") on/off, countdown length, recorded voice or the phone's own voice (with speed), a dark or sunlight (black-on-yellow) theme, and custom race types.
+
+### Voice clips
+
+Spoken callouts use the recorded clips in `app/voice/`, which are scheduled on the audio clock for exact timing. If a clip is missing, or a phone voice is picked in settings, the app falls back to the phone's text-to-speech.
+
+The clips were generated with `tools/make-voice.sh` using a macOS system voice. Apple's licence for those voices is aimed at personal use, so before this goes wide it's worth recording a real person's voice instead. Record the same phrases, save them with the same file names, and you're done. The phrase list is in the script.
 
 ## Install on a phone
 
@@ -30,7 +48,7 @@ Everything is static files in `app/`. Serve it locally:
 python3 -m http.server 8765 --directory app
 ```
 
-When you change files in `app/`, bump `VERSION` in `app/sw.js` so installed copies update.
+When you change files in `app/`, bump `VERSION` in `app/sw.js` so installed copies update. In the browser console, `__race.skip(30)` fast-forwards a running race by 30 seconds for testing.
 
 ## Deploy
 
