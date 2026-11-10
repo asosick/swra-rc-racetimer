@@ -89,3 +89,28 @@ When you change files in `app/`, bump `VERSION` in `app/sw.js` so installed copi
 ## Deploy
 
 `.github/workflows/pages.yml` publishes `app/` to GitHub Pages on every push to `main`. One-time setup: repo **Settings → Pages → Source: GitHub Actions**.
+
+### Host your own copy
+
+1. Fork this repo (or push a copy to your own GitHub account).
+2. In your copy, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main`, or run the workflow from the **Actions** tab. The app goes live at `https://<your-user>.github.io/<repo-name>/`.
+
+The app uses only relative paths, so it works at a domain root or under a subpath with no code changes.
+
+### Custom domain
+
+1. Add a DNS record at your domain registrar:
+   - **Subdomain** (e.g. `timer.yourclub.com`): add a `CNAME` record pointing to `<your-user>.github.io`.
+   - **Root domain** (e.g. `yourclub.com`): add `A` records for `185.199.108.153`, `185.199.109.153`, `185.199.110.153` and `185.199.111.153`. For IPv6, also add `AAAA` records for `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153` and `2606:50c0:8003::153`.
+2. In **Settings → Pages → Custom domain**, enter the domain and click **Save**. Because the site is deployed by GitHub Actions, you don't need a `CNAME` file in the repo.
+3. Once the DNS check passes (minutes to a few hours), tick **Enforce HTTPS**. HTTPS is required: without it, phones can't install the app and it won't work offline.
+4. Optional: verify the domain under your account's **Settings → Pages** so nobody else can claim it.
+
+GitHub's guide: [Managing a custom domain for your GitHub Pages site](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+
+**Changing the address later:** a phone's installed copy is tied to the address it was installed from. If you move to a new domain, people need to open the new address and install the app again. Their saved settings and race log stay behind on the old address.
+
+### Other static hosts
+
+Any static host that serves HTTPS works, such as Netlify, Cloudflare Pages or your own web server. Publish the `app/` folder as the site root. There's no build step.
