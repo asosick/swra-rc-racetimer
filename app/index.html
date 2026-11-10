@@ -19,107 +19,18 @@
   </script>
 </head>
 <body>
-  <!-- ---------- Loading screen ---------- -->
+  <!-- ---------- Loading screen (see splash.js) ---------- -->
   <div class="splash" id="splash" role="img" aria-label="SWRA Race Timer loading">
-    <svg class="splash-scene" viewBox="0 0 360 230" aria-hidden="true">
-      <defs>
-        <path id="course" d="M30,115 A150,74 0 1,0 330,115 A150,74 0 1,0 30,115"/>
-        <linearGradient id="fuse" x1="0" y1="-1" x2="0" y2="1">
-          <stop offset="0" stop-color="#ff6b5e"/><stop offset=".5" stop-color="#e8382c"/><stop offset="1" stop-color="#a8211a"/>
-        </linearGradient>
-        <linearGradient id="wing" x1="0" y1="-1" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffe680"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#e0a800"/>
-        </linearGradient>
-        <radialGradient id="canopy" cx=".35" cy=".35" r=".8">
-          <stop offset="0" stop-color="#bfe6ff"/><stop offset=".35" stop-color="#3a6ea5"/><stop offset="1" stop-color="#14243d"/>
-        </radialGradient>
-        <radialGradient id="glow" r=".5"><stop offset="0" stop-color="#ff8a2a" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/></radialGradient>
-        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
-        <!-- Top-down pylon racer, nose pointing +x -->
-        <g id="plane">
-          <path d="M-13,-1.2 L-16.5,-8 L-19.5,-8 L-18.5,-1.2 L-18.5,1.2 L-19.5,8 L-16.5,8 L-13,1.2 Z" fill="url(#wing)" stroke="#5a3d00" stroke-width=".5"/>
-          <path d="M8,-2 L4.5,-19 L0.5,-19 L-1.5,-2 L-1.5,2 L0.5,19 L4.5,19 L8,2 Z" fill="url(#wing)" stroke="#5a3d00" stroke-width=".5"/>
-          <path d="M3.4,-18.6 L4.5,-19 L0.5,-19 L0.9,-18.6 Z M3.4,18.6 L4.5,19 L0.5,19 L0.9,18.6 Z" fill="#e8382c"/>
-          <path d="M19,0 C19,-2.6 14,-3.4 6,-3.4 L-18,-1.4 L-18,1.4 L6,3.4 C14,3.4 19,2.6 19,0 Z" fill="url(#fuse)" stroke="#5c120d" stroke-width=".5"/>
-          <path d="M-17,0 L9,0" stroke="#fff" stroke-width=".9" stroke-opacity=".85"/>
-          <ellipse cx="6.5" cy="0" rx="4.2" ry="2.1" fill="url(#canopy)"/>
-          <circle cx="19.3" cy="0" r="1.3" fill="#ddd"/>
-          <ellipse class="prop" cx="20.2" cy="0" rx=".9" ry="8" fill="#fff" fill-opacity=".45">
-            <animate attributeName="ry" values="8;2;8" dur=".09s" repeatCount="indefinite"/>
-          </ellipse>
-        </g>
-      </defs>
-
-      <!-- course -->
-      <ellipse cx="180" cy="115" rx="150" ry="74" fill="none" class="course-line" stroke-width="1.5" stroke-dasharray="3 7">
-        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite"/>
-      </ellipse>
-
-      <!-- pylons -->
-      <g class="pylon" transform="translate(98 115)">
-        <circle r="18" fill="url(#glow)"><animate attributeName="r" values="14;20;14" dur="1.6s" repeatCount="indefinite"/></circle>
-        <ellipse cx="3" cy="4" rx="9" ry="7" fill="#000" opacity=".3" filter="url(#soft)"/>
-        <circle r="8.5" fill="#ff7a1a"/><circle r="6" fill="#fff"/><circle r="3.6" fill="#ff7a1a"/><circle r="1.3" fill="#fff"/>
-      </g>
-      <g class="pylon" transform="translate(262 115)">
-        <circle r="18" fill="url(#glow)"><animate attributeName="r" values="14;20;14" dur="1.6s" begin=".8s" repeatCount="indefinite"/></circle>
-        <ellipse cx="3" cy="4" rx="9" ry="7" fill="#000" opacity=".3" filter="url(#soft)"/>
-        <circle r="8.5" fill="#ff7a1a"/><circle r="6" fill="#fff"/><circle r="3.6" fill="#ff7a1a"/><circle r="1.3" fill="#fff"/>
-      </g>
-
-      <!-- checkered flag (waving) -->
-      <g transform="translate(166 86)">
-        <rect x="-1.6" y="-2" width="2.4" height="42" rx="1.2" fill="#c9ced8"/>
-        <circle cx="-.4" cy="-2.5" r="2" fill="#ffd23f"/>
-        <g class="flag">
-          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" repeatCount="indefinite"/>
-            <rect x="1" y="0" width="6" height="6" fill="#fff"/><rect x="1" y="6" width="6" height="6" fill="#111"/><rect x="1" y="12" width="6" height="6" fill="#fff"/><rect x="1" y="18" width="6" height="6" fill="#111"/></g>
-          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.15s" repeatCount="indefinite"/>
-            <rect x="7" y="0" width="6" height="6" fill="#111"/><rect x="7" y="6" width="6" height="6" fill="#fff"/><rect x="7" y="12" width="6" height="6" fill="#111"/><rect x="7" y="18" width="6" height="6" fill="#fff"/></g>
-          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.3s" repeatCount="indefinite"/>
-            <rect x="13" y="0" width="6" height="6" fill="#fff"/><rect x="13" y="6" width="6" height="6" fill="#111"/><rect x="13" y="12" width="6" height="6" fill="#fff"/><rect x="13" y="18" width="6" height="6" fill="#111"/></g>
-          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.45s" repeatCount="indefinite"/>
-            <rect x="19" y="0" width="6" height="6" fill="#111"/><rect x="19" y="6" width="6" height="6" fill="#fff"/><rect x="19" y="12" width="6" height="6" fill="#111"/><rect x="19" y="18" width="6" height="6" fill="#fff"/></g>
-          <g><animateTransform attributeName="transform" type="translate" values="0 -1.5;0 1.5;0 -1.5" dur=".9s" begin="-.6s" repeatCount="indefinite"/>
-            <rect x="25" y="0" width="6" height="6" fill="#fff"/><rect x="25" y="6" width="6" height="6" fill="#111"/><rect x="25" y="12" width="6" height="6" fill="#fff"/><rect x="25" y="18" width="6" height="6" fill="#111"/></g>
-        </g>
-      </g>
-
-      <!-- smoke trail (dots chase the plane along the course) -->
-      <g class="trail" id="trail"></g>
-
-      <!-- plane shadow, then plane -->
-      <g transform="translate(7 11)" opacity=".28" filter="url(#soft)">
-        <g><animateMotion dur="3.2s" begin="-1s" repeatCount="indefinite" rotate="auto"><mpath href="#course"/></animateMotion>
-          <g transform="scale(1.45)" fill="#000"><path d="M-13,-1.2 L-16.5,-8 L-19.5,-8 L-18.5,-1.2 L-18.5,1.2 L-19.5,8 L-16.5,8 L-13,1.2 Z"/><path d="M8,-2 L4.5,-19 L0.5,-19 L-1.5,-2 L-1.5,2 L0.5,19 L4.5,19 L8,2 Z"/><path d="M19,0 C19,-2.6 14,-3.4 6,-3.4 L-18,-1.4 L-18,1.4 L6,3.4 C14,3.4 19,2.6 19,0 Z"/></g></g>
-      </g>
-      <g transform="scale(1)">
-        <g><animateMotion dur="3.2s" begin="-1s" repeatCount="indefinite" rotate="auto"><mpath href="#course"/></animateMotion>
-          <use href="#plane" transform="scale(1.45)"/></g>
-      </g>
-    </svg>
-    <script>
-      // Smoke trail: dots that follow the plane a little behind it.
-      (function () {
-        var ns = 'http://www.w3.org/2000/svg', trail = document.getElementById('trail');
-        for (var k = 4; k <= 22; k++) {
-          var c = document.createElementNS(ns, 'circle');
-          c.setAttribute('r', (3.2 - k * 0.11).toFixed(2));
-          c.setAttribute('fill-opacity', (0.55 - k * 0.023).toFixed(3));
-          var m = document.createElementNS(ns, 'animateMotion');
-          m.setAttribute('dur', '3.2s'); m.setAttribute('repeatCount', 'indefinite');
-          m.setAttribute('begin', (-1 + k * 0.03).toFixed(3) + 's');
-          var mp = document.createElementNS(ns, 'mpath'); mp.setAttribute('href', '#course');
-          m.appendChild(mp); c.appendChild(m); trail.appendChild(c);
-        }
-      })();
-    </script>
-    <div class="splash-title">
+    <canvas id="splashFlag"></canvas>
+    <div class="splash-badge">
+      <div class="splash-stripe" aria-hidden="true"></div>
       <div class="splash-brand">SWRA</div>
       <div class="splash-name">Race Timer</div>
-      <div class="splash-bar"><span></span></div>
+      <div class="splash-sub">2-Pole</div>
     </div>
+    <canvas id="splashFx"></canvas>
   </div>
+  <script src="splash.js"></script>
 
   <main class="app" data-phase="idle">
     <header class="controls">
@@ -134,6 +45,9 @@
         </button>
         <button class="icon-btn" id="openLog" aria-label="Race log">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Log</span>
+        </button>
+        <button class="icon-btn" id="openHelp" aria-label="Help">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r=".4" fill="currentColor"/></svg><span>Help</span>
         </button>
         <button class="icon-btn" id="openSettings" aria-label="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span>
@@ -174,7 +88,7 @@
         <label class="row">Voice countdown <input type="checkbox" class="switch" id="voiceCountdown"></label>
         <label class="row">Time warnings <small>“One minute”, “Thirty seconds”</small><input type="checkbox" class="switch" id="warnings"></label>
         <label class="row">Countdown length
-          <select id="countdownLen"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="20">20 s</option></select>
+          <select id="countdownLen"><option value="0">Off (start on tap)</option><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="20">20 s</option></select>
         </label>
       </section>
       <section>
@@ -201,6 +115,17 @@
           <input id="crLap" type="number" inputmode="numeric" min="2" max="600" placeholder="Lap s" required>
           <button class="pill">Add</button>
         </form>
+      </section>
+      <section>
+        <h3>About</h3>
+        <a class="pill gh-link" href="https://github.com/asosick/swra-rc-racetimer" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View on GitHub
+        </a>
+      </section>
+      <section id="installSection" hidden>
+        <h3>App</h3>
+        <button type="button" class="pill" id="installFromSettings">Install app on this device</button>
       </section>
       <p class="about" id="about"></p>
     </div>
@@ -236,6 +161,64 @@
         <button type="button" class="pill ghost" id="clearLog">Clear</button>
       </div>
       <ul class="list log" id="logList"></ul>
+    </div>
+  </dialog>
+
+  <!-- ---------- Install prompt (small card, not a modal) ---------- -->
+  <div class="install-card" id="installCard" role="dialog" aria-labelledby="installTitle" hidden>
+    <img src="icons/icon-192.png" alt="" width="44" height="44">
+    <div class="install-text">
+      <b id="installTitle">Install Race Timer</b>
+      <span id="installMsg">Works offline at the field and opens full screen.</span>
+    </div>
+    <div class="install-actions">
+      <button type="button" class="pill" id="installYes">Install</button>
+      <button type="button" class="link-btn" id="installNo">Not now</button>
+    </div>
+  </div>
+
+  <!-- ---------- Help ---------- -->
+  <dialog class="sheet" id="helpSheet">
+    <form method="dialog" class="sheet-head"><h2>How it works</h2><button class="close" aria-label="Close">Got it</button></form>
+    <div class="sheet-body help">
+      <section>
+        <h3>Running a race</h3>
+        <ol>
+          <li><b>Pick the race type</b> at the top: Bronze 10, Bronze 8, Silver or Gold. The race and lap times are shown under each one.</li>
+          <li><b>Tap Start.</b> A countdown runs (beeps and voice), then the <b>air horn</b> starts the race.</li>
+          <li>Each lap gets a <b>chime</b> and a callout ("Lap 3"). The last one is "Final lap". The big number is laps completed.</li>
+          <li>A <b>brass fanfare</b> ends the race when the time is up.</li>
+        </ol>
+      </section>
+      <section>
+        <h3>During a race</h3>
+        <ul>
+          <li><b>Pause</b> freezes the clock. <b>Resume</b> gives a 3-2-1 before it carries on.</li>
+          <li><b>Hold Stop</b> for about a second to end the race and reset to zero. A quick tap does nothing, so it can't be stopped by accident.</li>
+          <li><b>Lap sounds</b> can be switched off or on at any time.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Heats</h3>
+        <p>Use <b>Heats</b> to line up a run of races. Pick a break between heats and the next one starts on its own, announced as "Heat 2", "Heat 3"… Or choose manual start.</p>
+      </section>
+      <section>
+        <h3>Log</h3>
+        <p>Every finished or stopped race is saved on this phone. Share it or download a spreadsheet (CSV) from <b>Log</b>.</p>
+      </section>
+      <section>
+        <h3>Settings</h3>
+        <p>Volume, voice (Liam, Classic or a phone voice), countdown length or <b>Off</b>, time warnings, a high-contrast <b>Sunlight</b> theme, and your own custom race types.</p>
+      </section>
+      <section>
+        <h3>Tips</h3>
+        <ul>
+          <li><b>Bluetooth speaker:</b> pair it in your phone's settings first. The app plays through whatever is connected. Use <b>Test sound</b> to check the volume.</li>
+          <li><b>Install it:</b> iPhone, Share then Add to Home Screen. Android, ⋮ then Install app. It then works offline at the field.</li>
+          <li>Keep the app open during a race. It keeps the screen awake for you.</li>
+        </ul>
+      </section>
+      <p class="about">Source code on <a href="https://github.com/asosick/swra-rc-racetimer" target="_blank" rel="noopener">GitHub</a>. Air horn: "Gas fog horn #2" by Joseph Sardin, BigSoundBank (CC0). Liam voice by ElevenLabs.</p>
     </div>
   </dialog>
 

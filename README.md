@@ -1,6 +1,23 @@
 # SWRA Race Timer
 
-Timer for SWRA 2-pole races, built as an installable web app (PWA). It runs in the phone's browser, works offline once loaded, and plays through whatever speaker the phone is connected to (including Bluetooth).
+Race timer for SWRA 2-pole RC pylon races. It runs the countdown, plays lap tones with spoken callouts, starts the race with an air horn, and handles heats and a race log. It's a web app you install on a phone or tablet, works offline, and plays through any Bluetooth speaker.
+
+**Open it:** https://asosick.github.io/swra-rc-racetimer/
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/splash-plane.png" width="190" alt="Loading screen: racer flying over a waving checkered flag"><br><sub>Loading screen</sub></td>
+    <td align="center"><img src="docs/screenshots/ready.png" width="190" alt="Ready to start"><br><sub>Ready</sub></td>
+    <td align="center"><img src="docs/screenshots/countdown.png" width="190" alt="Countdown"><br><sub>Countdown</sub></td>
+    <td align="center"><img src="docs/screenshots/racing.png" width="190" alt="Race in progress"><br><sub>Racing</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/sunlight.png" width="190" alt="Sunlight theme"><br><sub>Sunlight theme</sub></td>
+    <td align="center"><img src="docs/screenshots/heats.png" width="190" alt="Heat sequencer"><br><sub>Heats</sub></td>
+    <td align="center"><img src="docs/screenshots/settings.png" width="190" alt="Settings"><br><sub>Settings</sub></td>
+    <td align="center"><img src="docs/screenshots/help.png" width="190" alt="Built-in help"><br><sub>Help</sub></td>
+  </tr>
+</table>
 
 ## Races
 
@@ -11,7 +28,7 @@ Timer for SWRA 2-pole races, built as an installable web app (PWA). It runs in t
 | Silver    | 120 s  | 12 s           | 10   |
 | Gold      | 90 s   | 9 s            | 10   |
 
-**Start** runs a countdown (10 s by default): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn and ends with a brass fanfare. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
+**Start** runs a countdown (10 s by default, or off in Settings): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn and ends with a brass fanfare. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
 
 Air horn: "Gas fog horn #2" by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/gas-fog-horn-2-s1049.html), CC0 (public domain). The app uses the first blast, trimmed and normalised, in `app/sounds/airhorn.m4a`.
 
@@ -25,6 +42,9 @@ Other features:
 
 - **Heats**: queue up a run of heats (any mix of race types). Set a break between heats (30 s to 5 min) and the next heat starts on its own, announced as "Heat 3" before its countdown. You can also choose manual start.
 - **Race log**: every finished or stopped race is saved on the phone. Share it as text or download it as CSV.
+- **Help**: the **?** button explains everything, and it opens by itself on first launch.
+- **Install prompt**: from the second launch on, a small card offers to install the app. "Not now" hides it for two weeks, and it stops asking after three dismissals.
+- **Settings are remembered** on the device between launches.
 - **Settings**: volume, voice countdown on/off, time warnings ("One minute", "Thirty seconds") on/off, countdown length, recorded voice or the phone's own voice (with speed), a dark or sunlight (black-on-yellow) theme, and custom race types.
 
 ### Voice clips

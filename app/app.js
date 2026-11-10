@@ -8,6 +8,7 @@ import {
   VOICE_SETS, loadVoiceSet, voiceReady,
 } from './audio.js';
 
+const REPO_URL = 'https://github.com/asosick/swra-rc-racetimer';
 const LOOKAHEAD = 1.5;      // seconds of audio scheduled ahead of the clock
 const LAP_VOICE_DELAY = 0.22;   // lap number follows the short lap beep
 const COUNT_VOICE_DELAY = 0.15; // countdown number follows the tick
@@ -383,9 +384,9 @@ function render() {
     case 'countdown': {
       const left = t0 - n;
       el.status.textContent = 'Get ready';
-      setBig(Math.min(settings.countdown, Math.max(1, Math.ceil(left))));
+      setBig(Math.max(1, Math.min(settings.countdown || Infinity, Math.ceil(left))));
       el.sub.textContent = `${race.name} starts in`;
-      el.lapFill.style.width = `${Math.max(0, 1 - left / settings.countdown) * 100}%`;
+      el.lapFill.style.width = `${Math.max(0, 1 - left / Math.max(1, settings.countdown)) * 100}%`;
       clockRow(0);
       return;
     }
@@ -523,6 +524,17 @@ for (const d of document.querySelectorAll('dialog.sheet')) {
 $('openSettings').addEventListener('click', () => { syncSettings(); openSheet('settingsSheet'); });
 $('openHeats').addEventListener('click', () => { buildHeats(); openSheet('heatsSheet'); });
 $('openLog').addEventListener('click', () => { buildLog(); openSheet('logSheet'); });
+$('openHelp').addEventListener('click', () => openSheet('helpSheet'));
+
+// Show the help once, the first time the app is opened (after the loading screen).
+function firstRunHelp() {
+  try {
+    if (localStorage.getItem('helpSeen')) return;
+    localStorage.setItem('helpSeen', '1');
+  } catch { return; }
+  if (!isRunning()) openSheet('helpSheet');
+}
+
 
 /* ---------- settings ---------- */
 const s = {
@@ -560,7 +572,8 @@ function syncSettings() {
     li.appendChild(del);
     s.customList.appendChild(li);
   }
-  $('about').innerHTML = `SWRA Race Timer v${APP_VERSION}<br>Liam voice by <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>`;
+  syncInstallSetting();
+  $('about').innerHTML = `SWRA Race Timer v${APP_VERSION} · <a href="${REPO_URL}" target="_blank" rel="noopener">GitHub</a><br>Liam voice by <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a> · Air horn by Joseph Sardin (CC0)`;
 }
 
 s.volume.addEventListener('input', () => { settings.volume = s.volume.value / 100; setVolume(settings.volume); save(); });
@@ -701,6 +714,77 @@ $('clearLog').addEventListener('click', () => {
 });
 
 /* ================================================================== *
+ * Install prompt
+ *   Android/Chrome: use the browser's install prompt (beforeinstallprompt).
+ *   iPhone/iPad Safari: no prompt exists, so show Share → Add to Home Screen.
+ *   Never on first launch, during a race, or once installed. "Not now" snoozes
+ *   for 14 days; after 3 dismissals it stops asking (Settings still has it).
+ * ================================================================== */
+const INSTALL_SNOOZE_DAYS = 14;
+const INSTALL_MAX_DISMISS = 3;
+let deferredInstall = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const canInstall = () => !isStandalone() && (deferredInstall || isIOS());
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();          // we show our own, quieter card instead
+  deferredInstall = e;
+  syncInstallSetting();
+});
+window.addEventListener('appinstalled', () => { deferredInstall = null; hideInstallCard(); syncInstallSetting(); });
+
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+function showInstallCard() {
+  const card = $('installCard');
+  const ios = !deferredInstall && isIOS();
+  $('installMsg').innerHTML = ios
+    ? 'Tap <svg class="ios-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4 4 4M6 11H5v10h14V11h-1"/></svg> <b>Share</b>, then <b>Add to Home Screen</b>. It then works offline.'
+    : 'Works offline at the field and opens full screen.';
+  $('installYes').hidden = ios;
+  $('installNo').textContent = ios ? 'Got it' : 'Not now';
+  card.hidden = false;
+}
+function hideInstallCard() { $('installCard').hidden = true; }
+
+async function doInstall() {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice.catch(() => ({}));
+    deferredInstall = null;
+    hideInstallCard();
+    if (outcome !== 'accepted') snoozeInstall();
+    syncInstallSetting();
+  } else if (isIOS()) {
+    showInstallCard();
+  }
+}
+function snoozeInstall() {
+  lsSet('installDismissed', lsGet('installDismissed', 0) + 1);
+  lsSet('installSnoozeUntil', Date.now() + INSTALL_SNOOZE_DAYS * 864e5);
+}
+$('installYes').addEventListener('click', doInstall);
+$('installNo').addEventListener('click', () => { hideInstallCard(); snoozeInstall(); });
+$('installFromSettings').addEventListener('click', () => { $('settingsSheet').close(); doInstall(); });
+
+function syncInstallSetting() { $('installSection').hidden = !canInstall(); }
+
+function maybeOfferInstall() {
+  const launches = lsGet('launches', 0);
+  if (launches < 2) return;                                    // not on the very first open
+  if (lsGet('installDismissed', 0) >= INSTALL_MAX_DISMISS) return;
+  if (Date.now() < lsGet('installSnoozeUntil', 0)) return;
+  setTimeout(() => {
+    if (!canInstall() || isRunning() || document.querySelector('dialog[open]')) return;
+    showInstallCard();
+  }, 2500); // give the browser's install event time to arrive, and the user a moment
+}
+// Hide the card as soon as a race starts.
+new MutationObserver(() => { if (isRunning()) hideInstallCard(); }).observe(app, { attributes: true, attributeFilter: ['data-phase'] });
+
+/* ================================================================== *
  * Boot
  * ================================================================== */
 function refreshAll() { buildRaceButtons(); setPhase(phase); }
@@ -708,21 +792,14 @@ function refreshAll() { buildRaceButtons(); setPhase(phase); }
 applyTheme();
 initAudio();
 
-// Loading screen: show it briefly, until the voice clips are ready (tap to skip).
-(() => {
-  const splash = $('splash');
-  if (!splash) return;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) splash.querySelector('svg')?.pauseAnimations?.();
-  let gone = false;
-  const hide = () => {
-    if (gone) return; gone = true;
-    splash.classList.add('hide');
-    setTimeout(() => splash.remove(), 500);
-  };
-  const wait = ms => new Promise(r => setTimeout(r, ms));
-  Promise.race([Promise.all([wait(2200), voiceReady]), wait(5000)]).then(hide);
-  splash.addEventListener('click', hide);
-})();
+// After the loading screen: first-run help, then (on later launches) the install card.
+lsSet('launches', lsGet('launches', 0) + 1);
+const afterSplash = () => { firstRunHelp(); maybeOfferInstall(); };
+if (document.getElementById('splash')) window.addEventListener('splashdone', afterSplash, { once: true });
+else afterSplash();
+
+// Loading screen (splash.js): let the plane fly once the sounds are loaded.
+voiceReady.then(() => window.SPLASH?.go(), () => window.SPLASH?.go());
 syncLapToggle();
 buildRaceButtons();
 setPhase('idle');
