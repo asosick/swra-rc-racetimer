@@ -283,9 +283,11 @@ input.switch:checked::after { transform: translateX(18px); }
 .log .when { flex: 0 0 104px; color: var(--muted); font-size: 13px; padding-top: 2px; }
 .log li > span:last-child { flex: 1; }
 .log li.stopped b { color: var(--stop); }
-.add-race { display: grid; grid-template-columns: 1fr 84px 76px auto; gap: 8px; margin-top: 10px; }
+.add-race { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px 8px; margin-top: 10px; align-items: end; }
+.add-race label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 13px; color: var(--muted); }
+.add-race .cr-name { grid-column: 1 / -1; }
 .add-race input { min-width: 0; width: 100%; }
-@media (max-width: 400px) { .add-race { grid-template-columns: 1fr 1fr; } .add-race input:first-child { grid-column: 1 / -1; } }
+.add-race .pill { min-height: 40px; }
 
 /* ---------- audio interrupted bar ---------- */
 .audio-warn {

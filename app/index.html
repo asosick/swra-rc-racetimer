@@ -131,9 +131,12 @@
         <h3>Custom race types</h3>
         <ul class="list" id="customList"></ul>
         <form class="add-race" id="addRaceForm">
-          <input id="crName" placeholder="Name" maxlength="16" required>
-          <input id="crTotal" type="number" inputmode="numeric" min="10" max="3600" placeholder="Race s" required>
-          <input id="crLap" type="number" inputmode="numeric" min="2" max="600" placeholder="Lap s" required>
+          <label class="cr-name">Name
+            <input id="crName" placeholder="e.g. Club Sprint" maxlength="16" required></label>
+          <label>Race time (seconds)
+            <input id="crTotal" type="number" inputmode="numeric" min="10" max="3600" placeholder="e.g. 150" required></label>
+          <label>Lap time (seconds)
+            <input id="crLap" type="number" inputmode="numeric" min="2" max="600" placeholder="e.g. 15" required></label>
           <button class="pill">Add</button>
         </form>
       </section>

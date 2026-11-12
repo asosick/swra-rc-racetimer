@@ -1,6 +1,6 @@
 // Settings, race definitions and the race log, remembered on this device.
 
-export const APP_VERSION = '0.5.0';
+export const APP_VERSION = '0.5.1';
 
 // From the SWRA 2-pole criteria doc.
 export const BUILTIN_RACES = [
