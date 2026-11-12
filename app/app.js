@@ -13,14 +13,14 @@ const LOOKAHEAD = 1.5;      // seconds of audio scheduled ahead of the clock
 const LAP_VOICE_DELAY = 0.22;   // lap number follows the short lap beep
 const COUNT_VOICE_DELAY = 0.15; // countdown number follows the tick
 const HEAT_ANNOUNCE = 1.3;  // "Heat 3" is said this long before the countdown starts
-const RESUME_LEAD = 3;      // 3-2-1-go before a paused race restarts
 const HOLD_MS = 800;        // hold Stop this long to stop a race
 const WARNINGS = [[60, 'min1', 'One minute'], [30, 'sec30', 'Thirty seconds']];
 
 /* ================================================================== *
  * State
  * ================================================================== */
-// phase: idle | countdown | racing | paused | resuming | finished | gap
+// phase: idle | countdown | racing | paused | finished
+// Pause only exists during the pre-race countdown; a race in progress can only be stopped.
 let phase = 'idle';
 let updateReady = false;   // a new version is installed; reload when idle
 function reloadIfIdle() {
@@ -28,11 +28,8 @@ function reloadIfIdle() {
 }
 let events = [];
 let t0 = 0;            // AudioContext time the race clock reads 0:00
-let t1 = 0;            // resume "go" time (phase 'resuming')
-let pausedAt = 0;      // race-clock freeze point while paused
-let pausedFrom = null; // 'countdown' | 'racing'
+let pausedAt = 0;      // clock time the countdown was frozen at
 let pauseCount = 0;
-let gapEnd = 0;
 let activeRace = null; // race being run (fixed for the duration)
 let ticker = null;
 let rafId = null;
@@ -40,7 +37,7 @@ let rafId = null;
 // Heat sequence (not persisted across reloads; the heat list is).
 const seq = { active: false, index: 0 };
 
-const isRunning = () => ['countdown', 'racing', 'paused', 'resuming'].includes(phase);
+const isRunning = () => ['countdown', 'racing', 'paused'].includes(phase);
 const now = () => ctx.currentTime;
 
 function currentRace() {
@@ -105,7 +102,7 @@ function raceEvents(race, go) {
 function tick() {
   if (!ctx) return;
   const n = now();
-  if (phase !== 'paused' && phase !== 'gap') {
+  if (phase !== 'paused') {
     for (const e of events) {
       if (e.done || e.t - n > LOOKAHEAD) continue;
       if (e.voice) {
@@ -124,9 +121,7 @@ function tick() {
     }
   }
   if (phase === 'countdown' && n >= t0) setPhase('racing');
-  if (phase === 'resuming' && n >= t1) setPhase('racing');
   if (phase === 'racing' && n >= t0 + activeRace.total) finish();
-  if (phase === 'gap' && n >= gapEnd) start();
 }
 
 function startTicker() {
@@ -161,11 +156,9 @@ function start() {
 }
 
 function pause() {
-  if (!['countdown', 'racing', 'resuming'].includes(phase)) return;
-  pausedFrom = phase === 'countdown' ? 'countdown' : 'racing';
-  pausedAt = phase === 'resuming' ? t1 : now();
+  if (phase !== 'countdown') return;
+  pausedAt = now();
   silenceAll();
-  events = events.filter(e => !e.resumeOnly);
   for (const e of events) if (e.t > pausedAt - 0.02) { e.done = false; e.resolved = false; }
   pauseCount++;
   setPhase('paused');
@@ -175,33 +168,17 @@ function pause() {
 function resume() {
   if (phase !== 'paused') return;
   unlockAudio();
-  const n = now();
-  let goAt;
-  if (pausedFrom === 'countdown') {
-    goAt = n + 0.3;
-  } else {
-    const lead = n + 0.2;
-    goAt = lead + RESUME_LEAD;
-    events.push(...countdownEvents(lead, RESUME_LEAD, { resumeOnly: true }));
-  }
-  const shift = goAt - pausedAt;
-  for (const e of events) if (!e.resumeOnly && e.t > pausedAt - 0.02) e.t += shift;
+  const shift = now() + 0.3 - pausedAt;
+  for (const e of events) if (e.t > pausedAt - 0.02) e.t += shift;
   t0 += shift;
-  t1 = goAt;
-  setPhase(pausedFrom === 'countdown' ? 'countdown' : 'resuming');
+  setPhase('countdown');
   tick();
-}
-
-function raceClock() {
-  if (phase === 'paused') return pausedAt;
-  if (phase === 'resuming') return t1;
-  return now();
 }
 
 function logRace(result) {
   const r = activeRace;
   const laps = lapCount(r);
-  const elapsed = Math.max(0, Math.min(r.total, raceClock() - t0));
+  const elapsed = Math.max(0, Math.min(r.total, now() - t0));
   addLog({
     race: r.name, total: r.total, lap: r.lap, result,
     elapsed: Math.round(elapsed * 10) / 10,
@@ -214,22 +191,14 @@ function logRace(result) {
 
 function finish() {
   logRace('finished');
-  const more = seq.active && seq.index < settings.heats.length - 1;
-  if (more && settings.heatGap > 0) {
-    seq.index++;
-    gapEnd = now() + settings.heatGap;
-    events = [];
-    setPhase('gap');
-  } else {
-    stopTicker();
-    keepAwake(false);
-    setPhase('finished');
-  }
+  stopTicker();
+  keepAwake(seq.active);
+  setPhase('finished');
 }
 
 /** Stop button / reset: back to idle, timer and laps to zero. */
 function stop() {
-  if (phase === 'racing' || phase === 'resuming' || (phase === 'paused' && pausedFrom === 'racing')) logRace('stopped');
+  if (phase === 'racing') logRace('stopped');
   stopTicker();
   silenceAll();
   events = [];
@@ -253,7 +222,6 @@ function startSequence() {
 }
 function endSequence() {
   seq.active = false; seq.index = 0;
-  if (phase === 'gap') { stopTicker(); setPhase('idle'); }
   keepAwake(false);
   refreshAll();
 }
@@ -273,7 +241,7 @@ async function keepAwake(on) {
   } catch {}
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && (isRunning() || phase === 'gap' || seq.active)) keepAwake(true);
+  if (document.visibilityState === 'visible' && (isRunning() || seq.active)) keepAwake(true);
 });
 
 /* ================================================================== *
@@ -294,30 +262,24 @@ function fmt(s) {
   const sec = s - m * 60;
   return `${m}:${sec.toFixed(1).padStart(4, '0')}`;
 }
-function fmtGap(s) {
-  s = Math.max(0, Math.ceil(s));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 function setPhase(p) {
   phase = p;
   if (p === 'idle' && updateReady) setTimeout(reloadIfIdle, 300);
   app.dataset.phase = p;
-  if (p === 'paused') app.dataset.pausedFrom = pausedFrom;
   const labels = {
-    idle: 'Start', countdown: 'Stop', racing: 'Stop', paused: 'Stop', resuming: 'Stop',
-    gap: 'Start now',
+    idle: 'Start', countdown: 'Stop', racing: 'Stop', paused: 'Stop',
     finished: !seq.active ? 'Reset' : (seq.index < settings.heats.length - 1 ? 'Next heat' : 'Done'),
   };
   el.mainLabel.textContent = labels[p];
   el.main.classList.toggle('hold', isRunning());
-  const second = { countdown: 'Pause', racing: 'Pause', resuming: 'Pause', paused: 'Resume', gap: 'Wait' }[p];
+  const second = { countdown: 'Pause', paused: 'Resume' }[p];
   el.second.hidden = !second;
   if (second) el.second.textContent = second;
-  el.hint.innerHTML = isRunning() ? 'Hold <b>Stop</b> to end the race' : p === 'gap' ? '<b>Wait</b> cancels the auto-start' : '&nbsp;';
+  el.hint.innerHTML = isRunning() ? 'Hold <b>Stop</b> to end the race' : '&nbsp;';
   const shown = (isRunning() || p === 'finished') && activeRace ? activeRace : currentRace();
   for (const b of el.types.children) {
-    b.disabled = isRunning() || p === 'gap' || seq.active;
+    b.disabled = isRunning() || seq.active;
     b.setAttribute('aria-checked', String(b.dataset.id === shown.id));
   }
   const sel = el.types.querySelector('[aria-checked="true"]');
@@ -350,9 +312,7 @@ function render() {
   if (seq.active) {
     const total = settings.heats.length;
     const next = settings.heats[seq.index + 1];
-    el.banner.textContent = phase === 'gap'
-      ? `Break · Heat ${seq.index} of ${total} done`
-      : `Heat ${seq.index + 1} of ${total}` + (next && phase !== 'finished' ? ` · Up next: ${getRace(next).name}` : '');
+    el.banner.textContent = `Heat ${seq.index + 1} of ${total}` + (next && phase !== 'finished' ? ` · Up next: ${getRace(next).name}` : '');
   }
 
   const clockRow = (elapsed) => {
@@ -371,16 +331,6 @@ function render() {
       clockRow(0);
       return;
 
-    case 'gap': {
-      const left = gapEnd - n;
-      el.status.textContent = 'Next heat in';
-      setBig(fmtGap(left), true);
-      el.sub.textContent = `Heat ${seq.index + 1} · ${race.name}`;
-      el.lapFill.style.width = `${(1 - left / settings.heatGap) * 100}%`;
-      clockRow(0);
-      return;
-    }
-
     case 'countdown': {
       const left = t0 - n;
       el.status.textContent = 'Get ready';
@@ -393,23 +343,9 @@ function render() {
 
     case 'paused':
       el.status.textContent = 'Paused';
-      if (pausedFrom === 'countdown') {
-        setBig(Math.ceil(t0 - pausedAt));
-        el.sub.textContent = `${race.name} countdown paused`;
-        clockRow(0);
-      } else {
-        const e = pausedAt - t0;
-        setBig(Math.min(laps, Math.floor(e / race.lap + 1e-6)));
-        el.sub.textContent = `of ${laps} laps · tap Resume to continue`;
-        clockRow(e);
-      }
-      return;
-
-    case 'resuming':
-      el.status.textContent = 'Resuming';
-      setBig(Math.max(1, Math.ceil(t1 - n)));
-      el.sub.textContent = `${race.name} restarts in`;
-      clockRow(t1 - t0);
+      setBig(Math.ceil(t0 - pausedAt));
+      el.sub.textContent = `${race.name} countdown paused`;
+      clockRow(0);
       return;
 
     case 'finished':
@@ -433,7 +369,7 @@ function render() {
 
 function loop() {
   render();
-  if (['countdown', 'racing', 'resuming', 'gap'].includes(phase)) rafId = requestAnimationFrame(loop);
+  if (['countdown', 'racing'].includes(phase)) rafId = requestAnimationFrame(loop);
   else rafId = null;
 }
 
@@ -446,7 +382,7 @@ function buildRaceButtons() {
     b.setAttribute('aria-checked', String(r.id === currentRace().id));
     b.dataset.id = r.id;
     b.innerHTML = `${esc(r.name)}<small>${r.total}s / ${r.lap}s</small>`;
-    b.disabled = isRunning() || phase === 'gap' || seq.active;
+    b.disabled = isRunning() || seq.active;
     b.addEventListener('click', () => {
       if (b.disabled) return;
       settings.raceId = r.id; save();
@@ -509,14 +445,13 @@ onTap(el.main, () => {
   if (holdTimer) { cancelHold(); flashHint(); return; } // let go too soon
   if (swallowPress) { swallowPress = false; return; }
   if (isRunning()) return;                                // stopping is hold-only
-  if (phase === 'idle' || phase === 'gap') start();
+  if (phase === 'idle') start();
   else if (phase === 'finished') nextFromFinished();
 });
 
 onTap(el.second, () => {
   if (phase === 'paused') resume();
-  else if (phase === 'gap') { stopTicker(); setPhase('idle'); }
-  else if (isRunning()) pause();
+  else if (phase === 'countdown') pause();
 });
 
 onTap(el.test, async () => {
@@ -598,7 +533,7 @@ s.voiceSelect.addEventListener('change', () => {
   loadVoiceSet(settings.voice);
 });
 $('previewVoice').addEventListener('click', async () => {
-  unlockAudio({ fresh: !isRunning() && phase !== 'gap' });
+  unlockAudio({ fresh: !isRunning() });
   await Promise.all([loadVoiceSet(settings.voice), audioRunning()]);
   sayNow({ keys: ['lap3'], text: 'Lap 3' });
 });
@@ -650,7 +585,6 @@ function buildHeats() {
     });
     list.appendChild(li);
   });
-  $('heatGap').value = String(settings.heatGap);
   $('addHeat').disabled = locked;
   $('clearHeats').disabled = locked || !settings.heats.length;
   const t = $('seqToggle');
@@ -664,7 +598,6 @@ $('addHeat').addEventListener('click', () => {
 $('clearHeats').addEventListener('click', () => {
   if (confirm('Remove all heats?')) { settings.heats = []; save(); buildHeats(); }
 });
-$('heatGap').addEventListener('change', e => { settings.heatGap = Number(e.target.value); save(); });
 $('seqToggle').addEventListener('click', () => {
   if (seq.active) {
     if (isRunning() && !confirm('A heat is running. Stop it and end the sequence?')) return;
@@ -732,7 +665,7 @@ $('clearLog').addEventListener('click', () => {
 const audioWarn = $('audioWarn');
 let warnTimer = null;
 function checkAudio() {
-  const active = isRunning() && phase !== 'paused' || phase === 'gap';
+  const active = isRunning() && phase !== 'paused';
   const stuck = active && ctx && ctx.state !== 'running';
   clearTimeout(warnTimer);
   if (!stuck) { audioWarn.hidden = true; return; }
@@ -875,4 +808,4 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 
 // Exposed for debugging in the browser console.
 window.__race = { get phase() { return phase; }, get events() { return events; }, get t0() { return t0; }, seq, settings,
-  skip(sec) { t0 -= sec; t1 -= sec; gapEnd -= sec; for (const e of events) e.t -= sec; } };
+  skip(sec) { t0 -= sec; for (const e of events) e.t -= sec; } };

@@ -1,6 +1,6 @@
 // Settings, race definitions and the race log, remembered on this device.
 
-export const APP_VERSION = '0.4.4';
+export const APP_VERSION = '0.5.0';
 
 // From the SWRA 2-pole criteria doc.
 export const BUILTIN_RACES = [
@@ -22,7 +22,6 @@ const DEFAULTS = {
   splash: true,         // loading animation on launch
   customRaces: [],      // [{ id, name, total, lap }]
   heats: [],            // [raceId, ...]
-  heatGap: 120,         // seconds between heats; 0 = manual start
 };
 
 function read(key, fallback) {

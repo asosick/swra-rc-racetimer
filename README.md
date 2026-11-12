@@ -28,19 +28,19 @@ Race timer for SWRA 2-pole RC pylon races. It runs the countdown, plays lap tone
 | Silver    | 120 s  | 12 s           | 10   |
 | Gold      | 90 s   | 9 s            | 10   |
 
-**Start** runs a countdown (10 s by default, or off in Settings): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn and ends with a brass fanfare. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
+**Start** runs a countdown (10 s by default, or off in Settings): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn. At time-up the same horn marks the exact finish, then a brass fanfare plays. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
 
 Air horn: "Gas fog horn #2" by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/gas-fog-horn-2-s1049.html), CC0 (public domain). The app uses the first blast, trimmed and normalised, in `app/sounds/airhorn.m4a`.
 
 During a race:
 
-- **Pause / Resume**: pause freezes the clock and says "Race paused". Resume plays a 3-2-1-go lead-in, then the race continues where it stopped.
+- **Pause / Resume**: available during the start countdown only. Pause freezes the countdown and says "Race paused"; Resume picks it up where it left off. A race in progress can only be stopped (hold Stop).
 - **Hold Stop** (about 1 second) to end the race and reset to zero. A quick tap does nothing, so a race can't be stopped by accident.
 - The screen shows the lap count, time remaining, time to the next lap, and time elapsed.
 
 Other features:
 
-- **Heats**: queue up a run of heats (any mix of race types). Set a break between heats (30 s to 5 min) and the next heat starts on its own, announced as "Heat 3" before its countdown. You can also choose manual start.
+- **Heats**: queue up a run of heats (any mix of race types). After each heat, tap **Next heat**, then **Start** when the planes are launched and ready; each heat is announced as "Heat 3" before its countdown.
 - **Race log**: every finished or stopped race is saved on the phone. Share it as text or download it as CSV.
 - **Help**: the **?** button explains everything, and it opens by itself on first launch.
 - **Install prompt**: a small card offers to install the app (after the help closes on first launch). It uses the browser's install prompt on Android/Chrome and shows the steps on iPhone and Mac Safari. "Not now" hides it for two weeks, and it stops asking after three dismissals.

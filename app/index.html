@@ -156,18 +156,12 @@
   <dialog class="sheet" id="heatsSheet">
     <form method="dialog" class="sheet-head"><h2>Heats</h2><button class="close" aria-label="Close">Done</button></form>
     <div class="sheet-body">
-      <p class="note">Queue up a run of heats. Between heats the app can count down a break and start the next heat on its own.</p>
+      <p class="note">Queue up a run of heats. When a heat finishes, tap <b>Next heat</b>, then <b>Start</b> when the planes are ready.</p>
       <ol class="list heats" id="heatList"></ol>
       <div class="btn-row">
         <button type="button" class="pill" id="addHeat">+ Add heat</button>
         <button type="button" class="pill ghost" id="clearHeats">Clear</button>
       </div>
-      <label class="row">Break between heats
-        <select id="heatGap">
-          <option value="0">Manual start</option><option value="30">30 s</option><option value="60">1 min</option>
-          <option value="120">2 min</option><option value="180">3 min</option><option value="300">5 min</option>
-        </select>
-      </label>
       <button type="button" class="wide-btn" id="seqToggle">Start heat sequence</button>
     </div>
   </dialog>
@@ -212,20 +206,20 @@
           <li><b>Pick the race type</b> at the top: Bronze 10, Bronze 8, Silver or Gold. The race and lap times are shown under each one.</li>
           <li><b>Tap Start.</b> A countdown runs (beeps and voice), then the <b>air horn</b> starts the race.</li>
           <li>Each lap gets a <b>chime</b> and a callout ("Lap 3"). The last one is "Final lap". The big number is laps completed.</li>
-          <li>A <b>brass fanfare</b> ends the race when the time is up.</li>
+          <li>When the time is up an <b>air horn</b> marks the exact finish, then a <b>brass fanfare</b> plays.</li>
         </ol>
       </section>
       <section>
         <h3>During a race</h3>
         <ul>
-          <li><b>Pause</b> freezes the clock. <b>Resume</b> gives a 3-2-1 before it carries on.</li>
+          <li><b>Pause</b> is available during the start countdown only. <b>Resume</b> picks the countdown up where it left off.</li>
           <li><b>Hold Stop</b> for about a second to end the race and reset to zero. A quick tap does nothing, so it can't be stopped by accident.</li>
           <li><b>Lap sounds</b> can be switched off or on at any time.</li>
         </ul>
       </section>
       <section>
         <h3>Heats</h3>
-        <p>Use <b>Heats</b> to line up a run of races. Pick a break between heats and the next one starts on its own, announced as "Heat 2", "Heat 3"… Or choose manual start.</p>
+        <p>Use <b>Heats</b> to line up a run of races. After each heat tap <b>Next heat</b>, then <b>Start</b> when you're ready. Each heat is announced as "Heat 2", "Heat 3"…</p>
       </section>
       <section>
         <h3>Log</h3>

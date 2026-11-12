@@ -230,12 +230,15 @@ export const SOUNDS = {
     bell(t, 1760, 0.18, 0.5);
     bell(t + 0.07, 2349, 0.4, 0.55);
   },
-  // Finish: brass fanfare — da-da-da-DAAA.
+  // Finish: the air horn sounds exactly at time-up (so a close finish is easy
+  // to call), then the brass fanfare — da-da-da-DAAA — once the horn is done.
   end(t) {
-    brass(t,        [392], 0.13);
-    brass(t + 0.15, [523], 0.13);
-    brass(t + 0.30, [659], 0.13);
-    brass(t + 0.48, [523, 659, 784, 1047], 2.2, 0.36);
+    let f = t;
+    if (playSample('airhorn', t, 0.9)) f = t + samples.get('airhorn').duration + 0.1;
+    brass(f,        [392], 0.13);
+    brass(f + 0.15, [523], 0.13);
+    brass(f + 0.30, [659], 0.13);
+    brass(f + 0.48, [523, 659, 784, 1047], 2.2, 0.36);
   },
 };
 
