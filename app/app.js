@@ -514,6 +514,7 @@ function syncSettings() {
   s.volume.value = Math.round(settings.volume * 100);
   s.voiceCountdown.checked = settings.voiceCountdown;
   s.warnings.checked = settings.warnings;
+  $('hornOnly').checked = settings.hornOnly;
   s.countdownLen.value = String(settings.countdown);
   buildVoiceSelect();
   for (const b of s.themeSeg.children) b.setAttribute('aria-pressed', String(b.dataset.theme === settings.theme));
@@ -536,6 +537,7 @@ function syncSettings() {
 s.volume.addEventListener('input', () => { settings.volume = s.volume.value / 100; setVolume(settings.volume); save(); });
 s.voiceCountdown.addEventListener('change', () => { settings.voiceCountdown = s.voiceCountdown.checked; save(); });
 s.warnings.addEventListener('change', () => { settings.warnings = s.warnings.checked; save(); });
+$('hornOnly').addEventListener('change', e => { settings.hornOnly = e.target.checked; save(); });
 $('splashToggle').addEventListener('change', e => { settings.splash = e.target.checked; save(); });
 s.countdownLen.addEventListener('change', () => { settings.countdown = Number(s.countdownLen.value); save(); render(); });
 s.voiceSelect.addEventListener('change', () => {

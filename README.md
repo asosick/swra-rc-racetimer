@@ -28,7 +28,7 @@ Race timer for SWRA 2-pole RC pylon races. It runs the countdown, plays lap tone
 | Silver    | 120 s  | 12 s           | 10   |
 | Gold      | 90 s   | 9 s            | 10   |
 
-**Start** runs a countdown (10 s by default, or off in Settings): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn. At time-up the same horn marks the exact finish, then a brass fanfare plays. The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
+**Start** runs a countdown (10 s by default, or off in Settings): a beep and a spoken number each second, then "Go!" with a long tone. With **Lap sounds** on, each lap plays a short beep and then "Lap 1", "Lap 2"… The last lap is called as "Final lap". The race starts with a real stadium air horn. At time-up the same horn marks the exact finish, then a brass fanfare plays (Settings → **Air horn only at finish** drops the fanfare). The countdown ticks are soft marimba-style, the last three are bells, and the lap tone is a two-note chime. Everything except the air horn is synthesized in the browser.
 
 Air horn: "Gas fog horn #2" by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/gas-fog-horn-2-s1049.html), CC0 (public domain). The app uses the first blast, trimmed and normalised, in `app/sounds/airhorn.m4a`.
 

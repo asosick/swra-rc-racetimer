@@ -61,6 +61,13 @@ button:disabled { cursor: default; }
   max-width: 1100px;
   margin: 0 auto;
 }
+/* Installed (home-screen) app: the page runs right up under the status bar and
+ * iOS's soft blur at that edge reaches further down than in Safari, so give the
+ * race tabs more clearance there. */
+@media (display-mode: standalone) {
+  .app { padding-top: calc(env(safe-area-inset-top, 0px) + 26px); }
+  body .audio-warn { top: calc(env(safe-area-inset-top, 0px) + 26px); }
+}
 
 /* ---------- controls ---------- */
 .controls { display: flex; flex-direction: column; gap: 8px; min-width: 0; }

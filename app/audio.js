@@ -232,9 +232,14 @@ export const SOUNDS = {
   },
   // Finish: the air horn sounds exactly at time-up (so a close finish is easy
   // to call), then the brass fanfare — da-da-da-DAAA — once the horn is done.
+  // "Air horn only" skips the fanfare (unless the horn failed to load: the
+  // finish must always make a sound).
   end(t) {
     let f = t;
-    if (playSample('airhorn', t, 0.9)) f = t + samples.get('airhorn').duration + 0.1;
+    if (playSample('airhorn', t, 0.9)) {
+      if (settings.hornOnly) return;
+      f = t + samples.get('airhorn').duration + 0.1;
+    }
     brass(f,        [392], 0.13);
     brass(f + 0.15, [523], 0.13);
     brass(f + 0.30, [659], 0.13);

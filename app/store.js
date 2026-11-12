@@ -1,6 +1,6 @@
 // Settings, race definitions and the race log, remembered on this device.
 
-export const APP_VERSION = '0.5.2';
+export const APP_VERSION = '0.5.3';
 
 // From the SWRA 2-pole criteria doc.
 export const BUILTIN_RACES = [
@@ -15,6 +15,7 @@ const DEFAULTS = {
   lapSounds: true,
   voiceCountdown: true,
   warnings: true,       // "One minute" / "Thirty seconds"
+  hornOnly: false,      // finish with just the air horn (no brass fanfare)
   countdown: 10,        // seconds
   volume: 0.9,          // 0..1
   voice: 'liam',        // recorded voice set: 'liam' | 'classic'
