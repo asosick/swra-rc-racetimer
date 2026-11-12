@@ -30,6 +30,7 @@ let events = [];
 let t0 = 0;            // AudioContext time the race clock reads 0:00
 let pausedAt = 0;      // clock time the countdown was frozen at
 let pauseCount = 0;
+let countdownLen = 0;  // countdown seconds for the race being run
 let activeRace = null; // race being run (fixed for the duration)
 let ticker = null;
 let rafId = null;
@@ -145,11 +146,13 @@ function start() {
     events.push(voice(startAt, [{ keys: [`heat${h}`], text: `Heat ${h}` }]));
     startAt += HEAT_ANNOUNCE;
   }
-  const C = settings.countdown;
+  const C = countdownLen = settings.countdown;
   t0 = startAt + C;
   events.push(...countdownEvents(startAt, C), ...raceEvents(activeRace, t0));
   pauseCount = 0;
-  setPhase('countdown');
+  // Countdown off: go straight to the race screen (the horn is a split second away).
+  // With heats there's still the "Heat 2" announcement to wait through.
+  setPhase(C || seq.active ? 'countdown' : 'racing');
   keepAwake(true);
   startTicker();
   tick();
@@ -303,6 +306,13 @@ function setBig(v, wide = false) {
   el.big.classList.remove('pulse'); void el.big.offsetWidth; el.big.classList.add('pulse');
 }
 
+/** The number shown during the countdown, `left` seconds before the horn.
+ * Never more than the countdown length (the "Heat 2" announcement comes first)
+ * and never 1 when there's no countdown at all. */
+function countdownNumber(left) {
+  return countdownLen ? Math.max(1, Math.min(countdownLen, Math.ceil(left))) : 0;
+}
+
 function render() {
   const race = isRunning() || phase === 'finished' ? activeRace : currentRace();
   const laps = lapCount(race);
@@ -334,16 +344,16 @@ function render() {
     case 'countdown': {
       const left = t0 - n;
       el.status.textContent = 'Get ready';
-      setBig(Math.max(1, Math.min(settings.countdown || Infinity, Math.ceil(left))));
+      setBig(countdownNumber(left));
       el.sub.textContent = `${race.name} starts in`;
-      el.lapFill.style.width = `${Math.max(0, 1 - left / Math.max(1, settings.countdown)) * 100}%`;
+      el.lapFill.style.width = `${Math.max(0, 1 - left / Math.max(1, countdownLen)) * 100}%`;
       clockRow(0);
       return;
     }
 
     case 'paused':
       el.status.textContent = 'Paused';
-      setBig(Math.ceil(t0 - pausedAt));
+      setBig(countdownNumber(t0 - pausedAt));
       el.sub.textContent = `${race.name} countdown paused`;
       clockRow(0);
       return;
@@ -357,7 +367,7 @@ function render() {
       return;
 
     case 'racing': {
-      const e = Math.min(race.total, n - t0);
+      const e = Math.max(0, Math.min(race.total, n - t0)); // may be a hair before t0 with no countdown
       el.status.textContent = 'Racing';
       setBig(Math.min(laps, Math.floor(e / race.lap + 1e-6)));
       el.sub.textContent = `of ${laps} laps`;
